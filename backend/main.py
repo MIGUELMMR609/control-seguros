@@ -1,40 +1,29 @@
 from fastapi import FastAPI, Depends, HTTPException
-from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from datetime import datetime
-from jose import jwt
-
 from . import models, schemas
-from .database import engine, SessionLocal
+from .database import SessionLocal, engine
+from fastapi.security import OAuth2PasswordRequestForm
+from .auth import authenticate_user, create_access_token, get_current_user
 
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
-# ---------------- CORS ----------------
+# ---------------- CORS CONFIG CORRECTA ----------------
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "https://control-seguros-web.onrender.com",
+        "http://localhost:5173"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ---------------- AUTH ----------------
-
-SECRET_KEY = "mi_clave_super_secreta"
-ALGORITHM = "HS256"
-
-def verificar_token(token: str):
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        return payload
-    except:
-        raise HTTPException(status_code=401, detail="Token inválido")
-
-# ---------------- DEPENDENCIA DB ----------------
+# ------------------------------------------------------
 
 def get_db():
     db = SessionLocal()
@@ -43,71 +32,45 @@ def get_db():
     finally:
         db.close()
 
-# ---------------- RUTA TEST ----------------
-
 @app.get("/")
-def home():
+def root():
     return {"mensaje": "API funcionando"}
-
-# ---------------- LOGIN ----------------
 
 @app.post("/login")
 def login(form_data: OAuth2PasswordRequestForm = Depends()):
-    if form_data.username == "miguel" and form_data.password == "1234":
-        token = jwt.encode({"sub": form_data.username}, SECRET_KEY, algorithm=ALGORITHM)
-        return {"access_token": token, "token_type": "bearer"}
-    raise HTTPException(status_code=400, detail="Credenciales incorrectas")
+    user = authenticate_user(form_data.username, form_data.password)
+    if not user:
+        raise HTTPException(status_code=400, detail="Credenciales incorrectas")
+    access_token = create_access_token(data={"sub": user.username})
+    return {"access_token": access_token, "token_type": "bearer"}
 
-# ---------------- CREAR POLIZA ----------------
+@app.get("/polizas")
+def obtener_polizas(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    return db.query(models.Poliza).all()
 
-@app.post("/polizas", response_model=schemas.Poliza)
-def crear_poliza(poliza: schemas.PolizaCreate, db: Session = Depends(get_db), token: str = Depends(verificar_token)):
-    fecha = datetime.strptime(poliza.fecha_vencimiento, "%Y-%m-%d").date()
-
-    nueva = models.Poliza(
-        compania=poliza.compania,
-        bien=poliza.bien,
-        precio=poliza.precio,
-        fecha_vencimiento=fecha,
-    )
-
+@app.post("/polizas")
+def crear_poliza(poliza: schemas.PolizaCreate, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    nueva = models.Poliza(**poliza.dict())
     db.add(nueva)
     db.commit()
     db.refresh(nueva)
     return nueva
 
-# ---------------- LISTAR POLIZAS ----------------
-
-@app.get("/polizas", response_model=list[schemas.Poliza])
-def listar_polizas(db: Session = Depends(get_db), token: str = Depends(verificar_token)):
-    return db.query(models.Poliza).all()
-
-# ---------------- ELIMINAR POLIZA ----------------
+@app.put("/polizas/{poliza_id}")
+def actualizar_poliza(poliza_id: int, poliza: schemas.PolizaCreate, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    db_poliza = db.query(models.Poliza).filter(models.Poliza.id == poliza_id).first()
+    if not db_poliza:
+        raise HTTPException(status_code=404, detail="No encontrada")
+    for key, value in poliza.dict().items():
+        setattr(db_poliza, key, value)
+    db.commit()
+    return db_poliza
 
 @app.delete("/polizas/{poliza_id}")
-def eliminar_poliza(poliza_id: int, db: Session = Depends(get_db), token: str = Depends(verificar_token)):
-    poliza = db.query(models.Poliza).filter(models.Poliza.id == poliza_id).first()
-    if not poliza:
+def eliminar_poliza(poliza_id: int, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    db_poliza = db.query(models.Poliza).filter(models.Poliza.id == poliza_id).first()
+    if not db_poliza:
         raise HTTPException(status_code=404, detail="No encontrada")
-
-    db.delete(poliza)
+    db.delete(db_poliza)
     db.commit()
-    return {"mensaje": "Eliminada correctamente"}
-
-# ---------------- EDITAR POLIZA ----------------
-
-@app.put("/polizas/{poliza_id}", response_model=schemas.Poliza)
-def editar_poliza(poliza_id: int, datos: schemas.PolizaCreate, db: Session = Depends(get_db), token: str = Depends(verificar_token)):
-    poliza = db.query(models.Poliza).filter(models.Poliza.id == poliza_id).first()
-
-    if not poliza:
-        raise HTTPException(status_code=404, detail="No encontrada")
-
-    poliza.compania = datos.compania
-    poliza.bien = datos.bien
-    poliza.precio = datos.precio
-    poliza.fecha_vencimiento = datetime.strptime(datos.fecha_vencimiento, "%Y-%m-%d").date()
-
-    db.commit()
-    db.refresh(poliza)
-    return poliza
+    return {"mensaje": "Eliminada"}
