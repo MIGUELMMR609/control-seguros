@@ -1,5 +1,7 @@
 import { useState } from "react";
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 function App() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -16,33 +18,33 @@ function App() {
 
   // ---------------- LOGIN ----------------
 
-  const iniciarSesion = () => {
-    fetch("http://127.0.0.1:8000/login", {
+  const iniciarSesion = async () => {
+    const response = await fetch(`${API_URL}/login`, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({ username, password }),
-    })
-      .then((res) => {
-        if (!res.ok) {
-          alert("Usuario o contraseña incorrectos");
-          return;
-        }
-        return res.json();
-      })
-      .then((data) => {
-        if (data?.access_token) {
-          setToken(data.access_token);
-          cargarPolizas(data.access_token);
-        }
-      });
+    });
+
+    if (!response.ok) {
+      alert("Usuario o contraseña incorrectos");
+      return;
+    }
+
+    const data = await response.json();
+
+    if (data?.access_token) {
+      setToken(data.access_token);
+      cargarPolizas(data.access_token);
+    }
   };
 
-  const cargarPolizas = (authToken) => {
-    fetch("http://127.0.0.1:8000/polizas", {
+  const cargarPolizas = async (authToken) => {
+    const response = await fetch(`${API_URL}/polizas`, {
       headers: { Authorization: `Bearer ${authToken}` },
-    })
-      .then((res) => res.json())
-      .then((data) => setPolizas(data));
+    });
+
+    const data = await response.json();
+    setPolizas(data);
   };
 
   // ---------------- CALCULOS ----------------
@@ -56,8 +58,9 @@ function App() {
   const totalImporte = polizas.reduce((acc, p) => acc + p.precio, 0);
 
   const proximas = polizas.filter(
-    (p) => calcularDias(p.fecha_vencimiento) <= 15 &&
-           calcularDias(p.fecha_vencimiento) >= 0
+    (p) =>
+      calcularDias(p.fecha_vencimiento) <= 15 &&
+      calcularDias(p.fecha_vencimiento) >= 0
   );
 
   const vencidas = polizas.filter(
@@ -84,7 +87,7 @@ function App() {
 
   // ---------------- CRUD ----------------
 
-  const guardarPoliza = () => {
+  const guardarPoliza = async () => {
     if (!compania || !bien || !precio || !fecha) {
       alert("Todos los campos son obligatorios");
       return;
@@ -92,10 +95,10 @@ function App() {
 
     const metodo = editandoId ? "PUT" : "POST";
     const url = editandoId
-      ? `http://127.0.0.1:8000/polizas/${editandoId}`
-      : "http://127.0.0.1:8000/polizas";
+      ? `${API_URL}/polizas/${editandoId}`
+      : `${API_URL}/polizas`;
 
-    fetch(url, {
+    await fetch(url, {
       method: metodo,
       headers: {
         "Content-Type": "application/json",
@@ -107,21 +110,23 @@ function App() {
         precio: parseFloat(precio),
         fecha_vencimiento: fecha,
       }),
-    }).then(() => {
-      setCompania("");
-      setBien("");
-      setPrecio("");
-      setFecha("");
-      setEditandoId(null);
-      cargarPolizas(token);
     });
+
+    setCompania("");
+    setBien("");
+    setPrecio("");
+    setFecha("");
+    setEditandoId(null);
+    cargarPolizas(token);
   };
 
-  const eliminarPoliza = (id) => {
-    fetch(`http://127.0.0.1:8000/polizas/${id}`, {
+  const eliminarPoliza = async (id) => {
+    await fetch(`${API_URL}/polizas/${id}`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` },
-    }).then(() => cargarPolizas(token));
+    });
+
+    cargarPolizas(token);
   };
 
   const editarPoliza = (poliza) => {
@@ -213,52 +218,12 @@ function App() {
 
   return (
     <div style={{ padding: 40 }}>
-      <div style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center"
-      }}>
-        <h1>Gestión de Pólizas</h1>
-        <button
-          onClick={() => setVista("dashboard")}
-          style={{
-            padding: "10px 20px",
-            backgroundColor: "#1e3a8a",
-            color: "white",
-            border: "none",
-            borderRadius: "8px",
-            cursor: "pointer"
-          }}
-        >
-          ← Volver al Dashboard
-        </button>
-      </div>
+      <h1>Gestión de Pólizas</h1>
 
-      <hr />
-
-      <input
-        placeholder="Compañía"
-        value={compania}
-        onChange={(e) => setCompania(e.target.value)}
-      /><br /><br />
-
-      <input
-        placeholder="Bien"
-        value={bien}
-        onChange={(e) => setBien(e.target.value)}
-      /><br /><br />
-
-      <input
-        placeholder="Precio"
-        value={precio}
-        onChange={(e) => setPrecio(e.target.value)}
-      /><br /><br />
-
-      <input
-        type="date"
-        value={fecha}
-        onChange={(e) => setFecha(e.target.value)}
-      /><br /><br />
+      <input placeholder="Compañía" value={compania} onChange={(e)=>setCompania(e.target.value)} /><br /><br />
+      <input placeholder="Bien" value={bien} onChange={(e)=>setBien(e.target.value)} /><br /><br />
+      <input placeholder="Precio" value={precio} onChange={(e)=>setPrecio(e.target.value)} /><br /><br />
+      <input type="date" value={fecha} onChange={(e)=>setFecha(e.target.value)} /><br /><br />
 
       <button onClick={guardarPoliza}>
         {editandoId ? "Actualizar" : "Guardar"}
