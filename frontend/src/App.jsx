@@ -28,15 +28,19 @@ function App() {
 
     const data = await response.json();
     setToken(data.access_token);
+
     cargarPolizas(data.access_token);
   };
 
   const cargarPolizas = async (authToken) => {
-    const response = await fetch(`${API}/polizas`, {
-      headers: {
-        Authorization: `Bearer ${authToken}`,
-      },
-    });
+    const response = await fetch(
+      `${API}/polizas?token=${authToken}`
+    );
+
+    if (!response.ok) {
+      alert("Error cargando pólizas");
+      return;
+    }
 
     const data = await response.json();
     setPolizas(data);
@@ -65,6 +69,7 @@ function App() {
   return (
     <div style={{ padding: 40 }}>
       <h1>Pólizas</h1>
+      {polizas.length === 0 && <p>No hay pólizas</p>}
       <ul>
         {polizas.map((p) => (
           <li key={p.id}>
@@ -77,4 +82,3 @@ function App() {
 }
 
 export default App;
-
