@@ -1,16 +1,24 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
-const API = "https://control-seguros-api.onrender.com";
+const API = "http://127.0.0.1:8000";
 
 function App() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [token, setToken] = useState(null);
+  const [token, setToken] = useState(localStorage.getItem("token"));
   const [polizas, setPolizas] = useState([]);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (token) {
+      cargarPolizas(token);
+    }
+  }, [token]);
 
   const iniciarSesion = async () => {
     setError("");
+    setLoading(true);
 
     try {
       const response = await fetch(`${API}/login`, {
@@ -25,48 +33,59 @@ function App() {
         }),
       });
 
+      if (response.status === 401) {
+        setError("Credenciales incorrectas");
+        setLoading(false);
+        return;
+      }
+
       if (!response.ok) {
-        setError("Usuario o contraseña incorrectos");
+        setError("Error del servidor");
+        setLoading(false);
         return;
       }
 
       const data = await response.json();
 
-      if (!data.access_token) {
-        setError("No se recibió token del servidor");
-        return;
-      }
-
+      localStorage.setItem("token", data.access_token);
       setToken(data.access_token);
-      cargarPolizas(data.access_token);
 
-    } catch (err) {
-      setError("Error de conexión con el servidor");
+    } catch {
+      setError("No se puede conectar con el servidor");
     }
+
+    setLoading(false);
+  };
+
+  const cerrarSesion = () => {
+    localStorage.removeItem("token");
+    setToken(null);
+    setPolizas([]);
   };
 
   const cargarPolizas = async (authToken) => {
     try {
-      const response = await fetch(
-        `${API}/polizas?token=${authToken}`
-      );
+      const response = await fetch(`${API}/polizas`, {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      });
+
+      if (response.status === 401) {
+        cerrarSesion();
+        return;
+      }
 
       if (!response.ok) {
         setError("Error al cargar pólizas");
         return;
       }
 
-      const data = await response.json();
+      const dataPolizas = await response.json();
+      setPolizas(dataPolizas);
 
-      if (!Array.isArray(data)) {
-        setError("Formato de datos incorrecto");
-        return;
-      }
-
-      setPolizas(data);
-
-    } catch (err) {
-      setError("Error al obtener pólizas");
+    } catch {
+      setError("Error de conexión cargando pólizas");
     }
   };
 
@@ -90,7 +109,9 @@ function App() {
         />
         <br /><br />
 
-        <button onClick={iniciarSesion}>Entrar</button>
+        <button onClick={iniciarSesion} disabled={loading}>
+          {loading ? "Entrando..." : "Entrar"}
+        </button>
 
         {error && (
           <>
@@ -106,14 +127,14 @@ function App() {
     <div style={{ padding: 40 }}>
       <h1>Pólizas</h1>
 
-      {error && (
-        <div style={{ color: "red" }}>{error}</div>
-      )}
+      <button onClick={cerrarSesion}>Cerrar sesión</button>
+
+      {error && <div style={{ color: "red" }}>{error}</div>}
 
       <ul>
         {polizas.map((p) => (
           <li key={p.id}>
-            {p.compania} - {p.bien} - {p.precio}€
+            {p.compania} - {p.bien} - {p.prima}€
           </li>
         ))}
       </ul>
