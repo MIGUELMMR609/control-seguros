@@ -1,4 +1,4 @@
-const API = "http://127.0.0.1:8000";
+const API = "https://control-seguros-api.onrender.com";
 
 export async function loginRequest(username, password) {
   const body = new URLSearchParams();
