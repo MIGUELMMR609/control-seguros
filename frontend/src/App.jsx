@@ -7,10 +7,11 @@ function App() {
   const [password, setPassword] = useState("");
   const [token, setToken] = useState(null);
   const [polizas, setPolizas] = useState([]);
-
-  // ---------------- LOGIN ----------------
+  const [error, setError] = useState("");
 
   const iniciarSesion = async () => {
+    setError("");
+
     try {
       const response = await fetch(`${API}/login`, {
         method: "POST",
@@ -25,55 +26,49 @@ function App() {
       });
 
       if (!response.ok) {
-        alert("Usuario o contraseña incorrectos");
+        setError("Usuario o contraseña incorrectos");
         return;
       }
 
       const data = await response.json();
-      setToken(data.access_token);
 
+      if (!data.access_token) {
+        setError("No se recibió token del servidor");
+        return;
+      }
+
+      setToken(data.access_token);
       cargarPolizas(data.access_token);
 
-    } catch (error) {
-      console.error("Error login:", error);
+    } catch (err) {
+      setError("Error de conexión con el servidor");
     }
   };
 
-  // ---------------- CARGAR POLIZAS ----------------
-
   const cargarPolizas = async (authToken) => {
     try {
-      const response = await fetch(`${API}/polizas`, {
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
-      });
+      const response = await fetch(
+        `${API}/polizas?token=${authToken}`
+      );
 
-      // 🔴 Si el backend devuelve error (ej 422), no rompemos la app
       if (!response.ok) {
-        console.log("Error al cargar pólizas:", response.status);
-        setPolizas([]);
+        setError("Error al cargar pólizas");
         return;
       }
 
       const data = await response.json();
 
-      // 🔴 Si por cualquier motivo no es array
       if (!Array.isArray(data)) {
-        console.log("La respuesta no es un array");
-        setPolizas([]);
+        setError("Formato de datos incorrecto");
         return;
       }
 
       setPolizas(data);
 
-    } catch (error) {
-      console.error("Error fetch polizas:", error);
-      setPolizas([]);
+    } catch (err) {
+      setError("Error al obtener pólizas");
     }
   };
-
-  // ---------------- LOGIN VIEW ----------------
 
   if (!token) {
     return (
@@ -95,30 +90,33 @@ function App() {
         />
         <br /><br />
 
-        <button onClick={iniciarSesion}>
-          Entrar
-        </button>
+        <button onClick={iniciarSesion}>Entrar</button>
+
+        {error && (
+          <>
+            <br /><br />
+            <div style={{ color: "red" }}>{error}</div>
+          </>
+        )}
       </div>
     );
   }
-
-  // ---------------- POLIZAS VIEW ----------------
 
   return (
     <div style={{ padding: 40 }}>
       <h1>Pólizas</h1>
 
-      {polizas.length === 0 ? (
-        <p>No hay pólizas registradas.</p>
-      ) : (
-        <ul>
-          {polizas.map((p) => (
-            <li key={p.id}>
-              {p.compania} - {p.bien} - {p.precio}€
-            </li>
-          ))}
-        </ul>
+      {error && (
+        <div style={{ color: "red" }}>{error}</div>
       )}
+
+      <ul>
+        {polizas.map((p) => (
+          <li key={p.id}>
+            {p.compania} - {p.bien} - {p.precio}€
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
