@@ -11,9 +11,10 @@ models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
+# CORS ABIERTO PARA PRODUCCIÓN
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -34,10 +35,14 @@ def root():
 def login(form_data: OAuth2PasswordRequestForm = Depends()):
     user = authenticate_user(form_data.username, form_data.password)
     if not user:
-        raise HTTPException(status_code=400, detail="Credenciales incorrectas")
+        raise HTTPException(status_code=401, detail="Credenciales incorrectas")
     access_token = create_access_token(data={"sub": user.username})
     return {"access_token": access_token, "token_type": "bearer"}
 
 @app.get("/polizas")
-def obtener_polizas(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+def obtener_polizas(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
+):
     return db.query(models.Poliza).all()
+
