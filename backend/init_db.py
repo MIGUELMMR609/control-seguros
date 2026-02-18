@@ -1,5 +1,5 @@
-from app.database import SessionLocal, engine
-from app import models
+from backend.app.database import SessionLocal, engine
+from backend.app import models
 from sqlalchemy.exc import IntegrityError
 
 

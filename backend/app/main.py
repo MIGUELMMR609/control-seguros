@@ -3,15 +3,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordRequestForm
 
-from app import models
-from app.database import SessionLocal, engine
-from app.auth import authenticate_user, create_access_token, get_current_user
+from backend.app import models
+from backend.app.database import SessionLocal, engine
+from backend.app.auth import authenticate_user, create_access_token, get_current_user
 
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
-# CORS ABIERTO PARA PRODUCCIÓN
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
