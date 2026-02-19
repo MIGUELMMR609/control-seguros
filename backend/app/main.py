@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel
 from datetime import date
-from typing import Optional, List
+from typing import Optional
 
 from backend.app.database import SessionLocal, engine, Base
 from backend.app import models
@@ -14,8 +14,7 @@ from backend.init_db import init
 
 app = FastAPI()
 
-# 🔴 SOLO ESTE DEPLOY: reconstruir base completa
-Base.metadata.drop_all(bind=engine)
+# ✅ SOLO CREAR TABLAS (YA NO BORRAMOS NADA)
 Base.metadata.create_all(bind=engine)
 
 @app.on_event("startup")
@@ -133,7 +132,6 @@ def crear_renovacion(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user)
 ):
-    # Validar que exista la póliza
     poliza = db.query(models.Poliza).filter(models.Poliza.id == renovacion.poliza_id).first()
 
     if not poliza:
