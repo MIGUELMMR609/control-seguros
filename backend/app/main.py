@@ -6,17 +6,18 @@ from fastapi.security import OAuth2PasswordRequestForm
 from backend.app.database import SessionLocal, engine, Base
 from backend.app import models
 from backend.app.auth import authenticate_user, create_access_token, get_current_user
-from backend.init_db import create_initial_user
+from backend.init_db import init
 
 app = FastAPI()
 
-# BORRAR Y RECREAR TABLAS EN CADA ARRANQUE (AHORA MISMO ESTAMOS EN FASE DE RECONSTRUCCIÓN)
+# BORRAR Y RECREAR TABLAS (FASE DE RECONSTRUCCIÓN)
 Base.metadata.drop_all(bind=engine)
 Base.metadata.create_all(bind=engine)
 
+# Crear usuario inicial
 @app.on_event("startup")
 def startup_event():
-    create_initial_user()
+    init()
 
 # CORS
 app.add_middleware(
