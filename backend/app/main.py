@@ -6,13 +6,13 @@ from fastapi.security import OAuth2PasswordRequestForm
 from .database import SessionLocal, engine
 from . import models
 from .auth import authenticate_user, create_access_token, get_current_user
-from .init_db import create_initial_user
+from backend.init_db import init
 
 # Crear tablas
 models.Base.metadata.create_all(bind=engine)
 
 # Crear usuario inicial si no existe
-create_initial_user()
+init()
 
 app = FastAPI()
 
