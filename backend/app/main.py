@@ -10,16 +10,18 @@ from backend.app.database import SessionLocal, engine, Base
 from backend.app import models
 from backend.app.auth import authenticate_user, create_access_token, get_current_user
 from backend.init_db import init
+from backend.app.email_service import comprobar_vencimientos
 
 
 app = FastAPI()
 
-# ✅ SOLO CREAR TABLAS (YA NO BORRAMOS NADA)
+# Crear tablas si no existen
 Base.metadata.create_all(bind=engine)
 
 @app.on_event("startup")
 def startup_event():
     init()
+    comprobar_vencimientos()  # 🔔 Comprueba vencimientos al arrancar
 
 
 # CORS
