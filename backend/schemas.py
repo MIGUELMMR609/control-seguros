@@ -1,31 +1,55 @@
 from pydantic import BaseModel
 from datetime import date, datetime
-from typing import List, Optional
+from typing import Optional
 
 
 # =========================
-# POLIZA BASE
+# USER
+# =========================
+
+class UserBase(BaseModel):
+    username: str
+
+class UserCreate(UserBase):
+    password: str
+
+class UserOut(UserBase):
+    id: int
+
+    class Config:
+        from_attributes = True
+
+
+# =========================
+# POLIZA
 # =========================
 
 class PolizaBase(BaseModel):
-    compania: str
+    compania_id: Optional[int] = None
+    tipo_id: Optional[int] = None
     contacto_compania: Optional[str] = None
     telefono_compania: Optional[str] = None
-    tipo: str
     bien: str
     numero_poliza: str
     prima: float
     fecha_inicio: date
     fecha_vencimiento: date
-    estado: Optional[str] = "activa"
+    estado: str = "activa"
 
-
-# =========================
-# CREAR POLIZA
-# =========================
 
 class PolizaCreate(PolizaBase):
     pass
+
+
+class PolizaOut(PolizaBase):
+    id: int
+    aviso_enviado: bool
+    created_at: datetime
+    updated_at: datetime
+    dias_restantes: int
+
+    class Config:
+        from_attributes = True
 
 
 # =========================
@@ -33,16 +57,17 @@ class PolizaCreate(PolizaBase):
 # =========================
 
 class RenovacionBase(BaseModel):
+    poliza_id: int
     anio: int
     prima: float
     fecha_renovacion: date
 
 
 class RenovacionCreate(RenovacionBase):
-    poliza_id: int
+    pass
 
 
-class Renovacion(RenovacionBase):
+class RenovacionOut(RenovacionBase):
     id: int
     created_at: datetime
 
@@ -55,36 +80,22 @@ class Renovacion(RenovacionBase):
 # =========================
 
 class SiniestroBase(BaseModel):
+    poliza_id: int
     fecha: date
-    comunicado_compania: Optional[bool] = False
-    numero_parte: Optional[str] = None
-    descripcion: str
-    acciones_realizadas: Optional[str] = None
-    finalizado: Optional[bool] = False
+    comunicado_compania: bool = False
+    num_parte: Optional[str] = None
+    descripcion: Optional[str] = None
+    acciones: Optional[str] = None
+    finalizado: bool = False
 
 
 class SiniestroCreate(SiniestroBase):
-    poliza_id: int
+    pass
 
 
-class Siniestro(SiniestroBase):
+class SiniestroOut(SiniestroBase):
     id: int
     created_at: datetime
-
-    class Config:
-        from_attributes = True
-
-
-# =========================
-# POLIZA RESPONSE
-# =========================
-
-class Poliza(PolizaBase):
-    id: int
-    created_at: datetime
-    updated_at: datetime
-    renovaciones: List[Renovacion] = []
-    siniestros: List[Siniestro] = []
 
     class Config:
         from_attributes = True
