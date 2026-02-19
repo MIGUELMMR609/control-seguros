@@ -4,21 +4,24 @@ from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel
 from datetime import date
-from typing import Optional
+from typing import Optional, List
 
 from backend.app.database import SessionLocal, engine, Base
 from backend.app import models
 from backend.app.auth import authenticate_user, create_access_token, get_current_user
 from backend.init_db import init
 
+
 app = FastAPI()
 
-# SOLO CREAR TABLAS SI NO EXISTEN (YA NO BORRAMOS)
+# 🔴 SOLO ESTE DEPLOY: reconstruir base completa
+Base.metadata.drop_all(bind=engine)
 Base.metadata.create_all(bind=engine)
 
 @app.on_event("startup")
 def startup_event():
     init()
+
 
 # CORS
 app.add_middleware(
@@ -29,12 +32,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 def get_db():
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
+
 
 @app.get("/")
 def root():
@@ -51,8 +56,34 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
 
 
 # =========================
-# GET POLIZAS CON DIAS RESTANTES
+# POLIZAS
 # =========================
+
+class PolizaCreate(BaseModel):
+    compania_id: Optional[int] = None
+    tipo_id: Optional[int] = None
+    contacto_compania: Optional[str] = None
+    telefono_compania: Optional[str] = None
+    bien: str
+    numero_poliza: str
+    prima: float
+    fecha_inicio: date
+    fecha_vencimiento: date
+    estado: str = "activa"
+
+
+@app.post("/polizas")
+def crear_poliza(
+    poliza: PolizaCreate,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
+):
+    nueva_poliza = models.Poliza(**poliza.dict())
+    db.add(nueva_poliza)
+    db.commit()
+    db.refresh(nueva_poliza)
+    return nueva_poliza
+
 
 @app.get("/polizas")
 def obtener_polizas(
@@ -86,43 +117,45 @@ def obtener_polizas(
 
 
 # =========================
-# POST POLIZAS
+# RENOVACIONES
 # =========================
 
-class PolizaCreate(BaseModel):
-    compania_id: Optional[int] = None
-    tipo_id: Optional[int] = None
-    contacto_compania: Optional[str] = None
-    telefono_compania: Optional[str] = None
-    bien: str
-    numero_poliza: str
+class RenovacionCreate(BaseModel):
+    poliza_id: int
+    anio: int
     prima: float
-    fecha_inicio: date
-    fecha_vencimiento: date
-    estado: str = "activa"
+    fecha_renovacion: date
 
 
-@app.post("/polizas")
-def crear_poliza(
-    poliza: PolizaCreate,
+@app.post("/renovaciones")
+def crear_renovacion(
+    renovacion: RenovacionCreate,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user)
 ):
-    nueva_poliza = models.Poliza(
-        compania_id=poliza.compania_id,
-        tipo_id=poliza.tipo_id,
-        contacto_compania=poliza.contacto_compania,
-        telefono_compania=poliza.telefono_compania,
-        bien=poliza.bien,
-        numero_poliza=poliza.numero_poliza,
-        prima=poliza.prima,
-        fecha_inicio=poliza.fecha_inicio,
-        fecha_vencimiento=poliza.fecha_vencimiento,
-        estado=poliza.estado
-    )
+    # Validar que exista la póliza
+    poliza = db.query(models.Poliza).filter(models.Poliza.id == renovacion.poliza_id).first()
 
-    db.add(nueva_poliza)
+    if not poliza:
+        raise HTTPException(status_code=404, detail="Poliza no encontrada")
+
+    nueva_renovacion = models.Renovacion(**renovacion.dict())
+
+    db.add(nueva_renovacion)
     db.commit()
-    db.refresh(nueva_poliza)
+    db.refresh(nueva_renovacion)
 
-    return nueva_poliza
+    return nueva_renovacion
+
+
+@app.get("/renovaciones/{poliza_id}")
+def obtener_renovaciones(
+    poliza_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
+):
+    renovaciones = db.query(models.Renovacion).filter(
+        models.Renovacion.poliza_id == poliza_id
+    ).all()
+
+    return renovaciones
