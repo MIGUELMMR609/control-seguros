@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, Date, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Float, Boolean, Date, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from backend.app.database import Base
@@ -62,34 +62,43 @@ class Poliza(Base):
 
     estado = Column(String, default="activa")
 
+    aviso_enviado = Column(Boolean, default=False)
+
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow)
 
     compania = relationship("Compania")
     tipo = relationship("Tipo")
 
-    renovaciones = relationship(
-        "Renovacion",
-        back_populates="poliza",
-        cascade="all, delete-orphan"
-    )
-
 
 # =========================
-# RENOVACION
+# RENOVACIONES
 # =========================
 
 class Renovacion(Base):
     __tablename__ = "renovaciones"
 
     id = Column(Integer, primary_key=True, index=True)
-
-    poliza_id = Column(Integer, ForeignKey("polizas.id", ondelete="CASCADE"), nullable=False)
-
+    poliza_id = Column(Integer, ForeignKey("polizas.id"))
     anio = Column(Integer, nullable=False)
     prima = Column(Float, nullable=False)
     fecha_renovacion = Column(Date, nullable=False)
-
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    poliza = relationship("Poliza", back_populates="renovaciones")
+
+# =========================
+# SINIESTROS
+# =========================
+
+class Siniestro(Base):
+    __tablename__ = "siniestros"
+
+    id = Column(Integer, primary_key=True, index=True)
+    poliza_id = Column(Integer, ForeignKey("polizas.id"))
+    fecha = Column(Date, nullable=False)
+    comunicado_compania = Column(Boolean, default=False)
+    num_parte = Column(String, nullable=True)
+    descripcion = Column(String, nullable=True)
+    acciones = Column(String, nullable=True)
+    finalizado = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)

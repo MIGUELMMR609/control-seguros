@@ -2,29 +2,20 @@ from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordRequestForm
-from pydantic import BaseModel
-from datetime import date
-from typing import Optional
+from datetime import datetime
 
-from backend.app.database import SessionLocal, engine, Base
-from backend.app import models
-from backend.app.auth import authenticate_user, create_access_token, get_current_user
-from backend.init_db import init
-from backend.app.email_service import comprobar_vencimientos
+from .database import SessionLocal, engine
+from . import models
+from .auth import authenticate_user, create_access_token, get_current_user
+from .scheduler import iniciar_scheduler
 
+models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
-# Crear tablas si no existen
-Base.metadata.create_all(bind=engine)
+# Iniciar sistema automático de revisión de vencimientos
+iniciar_scheduler()
 
-@app.on_event("startup")
-def startup_event():
-    init()
-    comprobar_vencimientos()  # 🔔 Comprueba vencimientos al arrancar
-
-
-# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -33,7 +24,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 def get_db():
     db = SessionLocal()
     try:
@@ -41,11 +31,9 @@ def get_db():
     finally:
         db.close()
 
-
 @app.get("/")
 def root():
     return {"mensaje": "API funcionando"}
-
 
 @app.post("/login")
 def login(form_data: OAuth2PasswordRequestForm = Depends()):
@@ -55,47 +43,17 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
     access_token = create_access_token(data={"sub": user.username})
     return {"access_token": access_token, "token_type": "bearer"}
 
-
-# =========================
-# POLIZAS
-# =========================
-
-class PolizaCreate(BaseModel):
-    compania_id: Optional[int] = None
-    tipo_id: Optional[int] = None
-    contacto_compania: Optional[str] = None
-    telefono_compania: Optional[str] = None
-    bien: str
-    numero_poliza: str
-    prima: float
-    fecha_inicio: date
-    fecha_vencimiento: date
-    estado: str = "activa"
-
-
-@app.post("/polizas")
-def crear_poliza(
-    poliza: PolizaCreate,
-    db: Session = Depends(get_db),
-    current_user=Depends(get_current_user)
-):
-    nueva_poliza = models.Poliza(**poliza.dict())
-    db.add(nueva_poliza)
-    db.commit()
-    db.refresh(nueva_poliza)
-    return nueva_poliza
-
-
 @app.get("/polizas")
 def obtener_polizas(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user)
 ):
-    polizas = db.query(models.Poliza).all()
     resultado = []
 
+    polizas = db.query(models.Poliza).all()
+
     for p in polizas:
-        dias_restantes = (p.fecha_vencimiento - date.today()).days
+        dias_restantes = (p.fecha_vencimiento - datetime.utcnow().date()).days
 
         resultado.append({
             "id": p.id,
@@ -115,47 +73,3 @@ def obtener_polizas(
         })
 
     return resultado
-
-
-# =========================
-# RENOVACIONES
-# =========================
-
-class RenovacionCreate(BaseModel):
-    poliza_id: int
-    anio: int
-    prima: float
-    fecha_renovacion: date
-
-
-@app.post("/renovaciones")
-def crear_renovacion(
-    renovacion: RenovacionCreate,
-    db: Session = Depends(get_db),
-    current_user=Depends(get_current_user)
-):
-    poliza = db.query(models.Poliza).filter(models.Poliza.id == renovacion.poliza_id).first()
-
-    if not poliza:
-        raise HTTPException(status_code=404, detail="Poliza no encontrada")
-
-    nueva_renovacion = models.Renovacion(**renovacion.dict())
-
-    db.add(nueva_renovacion)
-    db.commit()
-    db.refresh(nueva_renovacion)
-
-    return nueva_renovacion
-
-
-@app.get("/renovaciones/{poliza_id}")
-def obtener_renovaciones(
-    poliza_id: int,
-    db: Session = Depends(get_db),
-    current_user=Depends(get_current_user)
-):
-    renovaciones = db.query(models.Renovacion).filter(
-        models.Renovacion.poliza_id == poliza_id
-    ).all()
-
-    return renovaciones
