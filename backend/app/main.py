@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel
 from datetime import date
+from typing import Optional
 
 from backend.app.database import SessionLocal, engine, Base
 from backend.app import models
@@ -61,10 +62,10 @@ def obtener_polizas(
 # =========================
 
 class PolizaCreate(BaseModel):
-    compania_id: int
-    tipo_id: int
-    contacto_compania: str | None = None
-    telefono_compania: str | None = None
+    compania_id: Optional[int] = None
+    tipo_id: Optional[int] = None
+    contacto_compania: Optional[str] = None
+    telefono_compania: Optional[str] = None
     bien: str
     numero_poliza: str
     prima: float
