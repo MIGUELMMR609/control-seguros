@@ -13,8 +13,7 @@ from backend.init_db import init
 
 app = FastAPI()
 
-# RECREAR TABLAS (FASE CONSTRUCCIÓN)
-Base.metadata.drop_all(bind=engine)
+# SOLO CREAR TABLAS SI NO EXISTEN (YA NO BORRAMOS)
 Base.metadata.create_all(bind=engine)
 
 @app.on_event("startup")
@@ -40,6 +39,7 @@ def get_db():
 @app.get("/")
 def root():
     return {"mensaje": "API funcionando"}
+
 
 @app.post("/login")
 def login(form_data: OAuth2PasswordRequestForm = Depends()):
