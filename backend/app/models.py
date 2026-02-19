@@ -47,11 +47,11 @@ class Poliza(Base):
 
     id = Column(Integer, primary_key=True, index=True)
 
-    compania_id = Column(Integer, ForeignKey("companias.id"))
-    tipo_id = Column(Integer, ForeignKey("tipos.id"))
+    compania_id = Column(Integer, ForeignKey("companias.id"), nullable=False)
+    tipo_id = Column(Integer, ForeignKey("tipos.id"), nullable=False)
 
-    contacto_compania = Column(String, nullable=True)
-    telefono_compania = Column(String, nullable=True)
+    contacto_compania = Column(String)
+    telefono_compania = Column(String)
 
     bien = Column(String, nullable=False)
     numero_poliza = Column(String, nullable=False, unique=True)
@@ -67,3 +67,49 @@ class Poliza(Base):
 
     compania = relationship("Compania")
     tipo = relationship("Tipo")
+
+    renovaciones = relationship("Renovacion", back_populates="poliza", cascade="all, delete")
+    siniestros = relationship("Siniestro", back_populates="poliza", cascade="all, delete")
+
+
+# =========================
+# RENOVACIONES
+# =========================
+
+class Renovacion(Base):
+    __tablename__ = "renovaciones"
+
+    id = Column(Integer, primary_key=True, index=True)
+    poliza_id = Column(Integer, ForeignKey("polizas.id"), nullable=False)
+
+    anio = Column(Integer, nullable=False)
+    prima = Column(Float, nullable=False)
+    fecha_renovacion = Column(Date, nullable=False)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    poliza = relationship("Poliza", back_populates="renovaciones")
+
+
+# =========================
+# SINIESTROS
+# =========================
+
+class Siniestro(Base):
+    __tablename__ = "siniestros"
+
+    id = Column(Integer, primary_key=True, index=True)
+    poliza_id = Column(Integer, ForeignKey("polizas.id"), nullable=False)
+
+    fecha = Column(Date, nullable=False)
+    comunicado_compania = Column(Boolean, default=False)
+    numero_parte = Column(String)
+
+    descripcion = Column(String, nullable=False)
+    acciones_realizadas = Column(String)
+
+    finalizado = Column(Boolean, default=False)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    poliza = relationship("Poliza", back_populates="siniestros")

@@ -3,18 +3,21 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordRequestForm
 
-from .database import SessionLocal, engine
-from . import models
-from .auth import authenticate_user, create_access_token, get_current_user
-from backend.init_db import init
-
-# Crear tablas
-models.Base.metadata.create_all(bind=engine)
-
-# Crear usuario inicial si no existe
-init()
+from backend.app.database import SessionLocal, engine, Base
+from backend.app import models
+from backend.app.auth import authenticate_user, create_access_token, get_current_user
+from backend.app.init_db import create_initial_user
 
 app = FastAPI()
+
+# BORRADO Y CREACIÓN LIMPIA DE TABLAS
+Base.metadata.drop_all(bind=engine)
+Base.metadata.create_all(bind=engine)
+
+# Crear usuario inicial
+@app.on_event("startup")
+def startup_event():
+    create_initial_user()
 
 # CORS
 app.add_middleware(
