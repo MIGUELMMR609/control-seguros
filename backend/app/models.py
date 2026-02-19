@@ -4,10 +4,6 @@ from datetime import datetime
 from backend.app.database import Base
 
 
-# =========================
-# USER
-# =========================
-
 class User(Base):
     __tablename__ = "users"
 
@@ -16,20 +12,12 @@ class User(Base):
     password = Column(String, nullable=False)
 
 
-# =========================
-# COMPANIAS
-# =========================
-
 class Compania(Base):
     __tablename__ = "companias"
 
     id = Column(Integer, primary_key=True, index=True)
     nombre = Column(String, unique=True, nullable=False)
 
-
-# =========================
-# TIPOS
-# =========================
 
 class Tipo(Base):
     __tablename__ = "tipos"
@@ -38,17 +26,13 @@ class Tipo(Base):
     nombre = Column(String, unique=True, nullable=False)
 
 
-# =========================
-# POLIZA
-# =========================
-
 class Poliza(Base):
     __tablename__ = "polizas"
 
     id = Column(Integer, primary_key=True, index=True)
 
-    compania_id = Column(Integer, ForeignKey("companias.id"), nullable=False)
-    tipo_id = Column(Integer, ForeignKey("tipos.id"), nullable=False)
+    compania_id = Column(Integer, ForeignKey("companias.id"), nullable=True)
+    tipo_id = Column(Integer, ForeignKey("tipos.id"), nullable=True)
 
     contacto_compania = Column(String)
     telefono_compania = Column(String)
@@ -72,10 +56,6 @@ class Poliza(Base):
     siniestros = relationship("Siniestro", back_populates="poliza", cascade="all, delete")
 
 
-# =========================
-# RENOVACIONES
-# =========================
-
 class Renovacion(Base):
     __tablename__ = "renovaciones"
 
@@ -90,10 +70,6 @@ class Renovacion(Base):
 
     poliza = relationship("Poliza", back_populates="renovaciones")
 
-
-# =========================
-# SINIESTROS
-# =========================
 
 class Siniestro(Base):
     __tablename__ = "siniestros"
