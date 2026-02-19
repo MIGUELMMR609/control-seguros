@@ -49,12 +49,40 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
     access_token = create_access_token(data={"sub": user.username})
     return {"access_token": access_token, "token_type": "bearer"}
 
+
+# =========================
+# GET POLIZAS CON DIAS RESTANTES
+# =========================
+
 @app.get("/polizas")
 def obtener_polizas(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user)
 ):
-    return db.query(models.Poliza).all()
+    polizas = db.query(models.Poliza).all()
+    resultado = []
+
+    for p in polizas:
+        dias_restantes = (p.fecha_vencimiento - date.today()).days
+
+        resultado.append({
+            "id": p.id,
+            "compania_id": p.compania_id,
+            "tipo_id": p.tipo_id,
+            "contacto_compania": p.contacto_compania,
+            "telefono_compania": p.telefono_compania,
+            "bien": p.bien,
+            "numero_poliza": p.numero_poliza,
+            "prima": p.prima,
+            "fecha_inicio": p.fecha_inicio,
+            "fecha_vencimiento": p.fecha_vencimiento,
+            "estado": p.estado,
+            "created_at": p.created_at,
+            "updated_at": p.updated_at,
+            "dias_restantes": dias_restantes
+        })
+
+    return resultado
 
 
 # =========================
