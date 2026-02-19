@@ -3,10 +3,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordRequestForm
 
-from backend.database import SessionLocal, engine
-from backend import models
-from backend.auth import authenticate_user, create_access_token, get_current_user
-from backend.init_db import create_initial_user
+from .database import SessionLocal, engine
+from . import models
+from .auth import authenticate_user, create_access_token, get_current_user
+from .init_db import create_initial_user
 
 # Crear tablas
 models.Base.metadata.create_all(bind=engine)
