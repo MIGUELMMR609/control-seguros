@@ -37,8 +37,8 @@ def crear_poliza(data: dict, db: Session = Depends(get_db)):
         numero_poliza=data["numero_poliza"],
         bien=data["bien"],
         prima=data["prima"],
-        fecha_inicio=datetime.strptime(data["fecha_inicio"], "%Y-%m-%d"),
-        fecha_vencimiento=datetime.strptime(data["fecha_vencimiento"], "%Y-%m-%d"),
+        fecha_inicio=datetime.strptime(data["fecha_inicio"], "%Y-%m-%d").date(),
+        fecha_vencimiento=datetime.strptime(data["fecha_vencimiento"], "%Y-%m-%d").date(),
         estado=data.get("estado", "Activa"),
         aviso_enviado=False
     )
@@ -59,8 +59,8 @@ def listar_polizas(db: Session = Depends(get_db)):
             "numero_poliza": p.numero_poliza,
             "bien": p.bien,
             "prima": p.prima,
-            "fecha_inicio": p.fecha_inicio.date(),
-            "fecha_vencimiento": p.fecha_vencimiento.date(),
+            "fecha_inicio": p.fecha_inicio,
+            "fecha_vencimiento": p.fecha_vencimiento,
             "estado": p.estado,
             "aviso_enviado": p.aviso_enviado,
             "created_at": p.created_at,
@@ -81,8 +81,8 @@ def obtener_poliza(poliza_id: int, db: Session = Depends(get_db)):
         "numero_poliza": poliza.numero_poliza,
         "bien": poliza.bien,
         "prima": poliza.prima,
-        "fecha_inicio": poliza.fecha_inicio.date(),
-        "fecha_vencimiento": poliza.fecha_vencimiento.date(),
+        "fecha_inicio": poliza.fecha_inicio,
+        "fecha_vencimiento": poliza.fecha_vencimiento,
         "estado": poliza.estado,
         "aviso_enviado": poliza.aviso_enviado,
         "created_at": poliza.created_at,
@@ -106,7 +106,7 @@ def actualizar_poliza(poliza_id: int, data: dict, db: Session = Depends(get_db))
     if "fecha_vencimiento" in data:
         poliza.fecha_vencimiento = datetime.strptime(
             data["fecha_vencimiento"], "%Y-%m-%d"
-        )
+        ).date()
 
     if "estado" in data:
         poliza.estado = data["estado"]
@@ -148,7 +148,7 @@ def revisar_vencimientos(db: Session = Depends(get_db)):
             msg["From"] = os.getenv("EMAIL_USER")
             msg["To"] = os.getenv("EMAIL_USER")
             msg.set_content(
-                f"La póliza {poliza.numero_poliza} vence el {poliza.fecha_vencimiento.date()}"
+                f"La póliza {poliza.numero_poliza} vence el {poliza.fecha_vencimiento}"
             )
 
             with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
