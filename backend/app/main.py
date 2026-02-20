@@ -49,11 +49,15 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
     return {"access_token": access_token, "token_type": "bearer"}
 
 # -------------------------
-# CRUD POLIZAS (AÚN SIN PROTEGER)
+# CRUD POLIZAS (AHORA PROTEGIDO)
 # -------------------------
 
 @app.post("/polizas")
-def crear_poliza(data: dict, db: Session = Depends(get_db)):
+def crear_poliza(
+    data: dict,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
 
     poliza_existente = db.query(Poliza).filter(
         Poliza.numero_poliza == data["numero_poliza"]
@@ -79,7 +83,10 @@ def crear_poliza(data: dict, db: Session = Depends(get_db)):
     return {"mensaje": "Póliza creada correctamente", "id": nueva.id}
 
 @app.get("/polizas")
-def listar_polizas(db: Session = Depends(get_db)):
+def listar_polizas(
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
     polizas = db.query(Poliza).all()
 
     return [
@@ -99,7 +106,11 @@ def listar_polizas(db: Session = Depends(get_db)):
     ]
 
 @app.get("/polizas/{poliza_id}")
-def obtener_poliza(poliza_id: int, db: Session = Depends(get_db)):
+def obtener_poliza(
+    poliza_id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
     poliza = db.query(Poliza).filter(Poliza.id == poliza_id).first()
 
     if not poliza:
@@ -119,7 +130,12 @@ def obtener_poliza(poliza_id: int, db: Session = Depends(get_db)):
     }
 
 @app.put("/polizas/{poliza_id}")
-def actualizar_poliza(poliza_id: int, data: dict, db: Session = Depends(get_db)):
+def actualizar_poliza(
+    poliza_id: int,
+    data: dict,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
 
     poliza = db.query(Poliza).filter(Poliza.id == poliza_id).first()
 
@@ -145,7 +161,11 @@ def actualizar_poliza(poliza_id: int, data: dict, db: Session = Depends(get_db))
     return {"mensaje": "Póliza actualizada correctamente"}
 
 @app.delete("/polizas/{poliza_id}")
-def eliminar_poliza(poliza_id: int, db: Session = Depends(get_db)):
+def eliminar_poliza(
+    poliza_id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
 
     poliza = db.query(Poliza).filter(Poliza.id == poliza_id).first()
 
@@ -158,7 +178,7 @@ def eliminar_poliza(poliza_id: int, db: Session = Depends(get_db)):
     return {"mensaje": "Póliza eliminada correctamente"}
 
 # -------------------------
-# REVISIÓN VENCIMIENTOS
+# REVISIÓN VENCIMIENTOS (AÚN SIN PROTEGER)
 # -------------------------
 
 @app.post("/revisar-vencimientos")
