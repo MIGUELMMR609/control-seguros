@@ -1,32 +1,27 @@
-from backend.app.database import SessionLocal, engine
-from backend.app import models
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
+from backend.app.database import SessionLocal
+from backend.app.models import User
+from passlib.context import CryptContext
 
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-def init():
-    # Crear tablas si no existen
-    models.Base.metadata.create_all(bind=engine)
+def create_initial_user():
+    db: Session = SessionLocal()
 
-    db = SessionLocal()
+    user = db.query(User).filter(User.username == "miguel").first()
 
-    # Crear usuario inicial si no existe
-    existing_user = db.query(models.User).filter(
-        models.User.username == "miguel"
-    ).first()
+    if not user:
+        hashed_password = pwd_context.hash("1234")
 
-    if not existing_user:
-        user = models.User(username="miguel", password="1234")
-        db.add(user)
-        try:
-            db.commit()
-            print("Usuario inicial creado.")
-        except IntegrityError:
-            db.rollback()
+        new_user = User(
+            username="miguel",
+            password=hashed_password
+        )
+
+        db.add(new_user)
+        db.commit()
+        print("Usuario inicial creado.")
     else:
         print("Usuario ya existe.")
 
     db.close()
-
-
-if __name__ == "__main__":
-    init()
