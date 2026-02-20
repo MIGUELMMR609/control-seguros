@@ -32,15 +32,18 @@ def enviar_email(destinatario, asunto, mensaje):
 
 def revisar_vencimientos():
     db: Session = SessionLocal()
-
     try:
         hoy = datetime.utcnow().date()
         fecha_objetivo = hoy + timedelta(days=15)
+
+        print("Revisando vencimientos para:", fecha_objetivo)
 
         polizas = db.query(Poliza).filter(
             Poliza.fecha_vencimiento == fecha_objetivo,
             Poliza.aviso_enviado == False
         ).all()
+
+        print("Polizas encontradas:", len(polizas))
 
         for poliza in polizas:
             asunto = "PRUEBA - Vencimiento en 15 días"
@@ -72,5 +75,11 @@ Faltan 15 días para su vencimiento.
 
 def iniciar_scheduler():
     scheduler = BackgroundScheduler()
-    scheduler.add_job(revisar_vencimientos, "interval", minutes=1)
+    scheduler.add_job(
+        revisar_vencimientos,
+        "interval",
+        minutes=1,
+        max_instances=5,
+        coalesce=True
+    )
     scheduler.start()
