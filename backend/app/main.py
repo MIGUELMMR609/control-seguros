@@ -48,6 +48,28 @@ def root():
     return {"mensaje": "Backend funcionando"}
 
 
+@app.post("/polizas")
+def crear_poliza(data: dict):
+    db: Session = SessionLocal()
+
+    nueva = models.Poliza(
+        numero_poliza=data["numero_poliza"],
+        bien=data["bien"],
+        prima=data["prima"],
+        fecha_inicio=data["fecha_inicio"],
+        fecha_vencimiento=data["fecha_vencimiento"],
+        estado=data["estado"],
+        aviso_enviado=False
+    )
+
+    db.add(nueva)
+    db.commit()
+    db.refresh(nueva)
+    db.close()
+
+    return nueva
+
+
 @app.get("/ver-polizas")
 def ver_polizas():
     db: Session = SessionLocal()
