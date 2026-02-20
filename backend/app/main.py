@@ -20,7 +20,7 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Control Seguros API",
-    version="1.1",
+    version="1.2",
 )
 
 origins = [
@@ -63,7 +63,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
 
     return {"access_token": access_token, "token_type": "bearer"}
 
-# ---------------- LISTAR ----------------
+# ---------------- CRUD ----------------
 
 @app.get("/polizas")
 def listar_polizas(
@@ -71,8 +71,6 @@ def listar_polizas(
     current_user: dict = Depends(get_current_user)
 ):
     return db.query(Poliza).all()
-
-# ---------------- CREAR ----------------
 
 @app.post("/polizas")
 def crear_poliza(
@@ -95,8 +93,6 @@ def crear_poliza(
     db.refresh(nueva)
 
     return nueva
-
-# ---------------- ACTUALIZAR ----------------
 
 @app.put("/polizas/{poliza_id}")
 def actualizar_poliza(
@@ -121,8 +117,6 @@ def actualizar_poliza(
 
     return poliza
 
-# ---------------- ELIMINAR ----------------
-
 @app.delete("/polizas/{poliza_id}")
 def eliminar_poliza(
     poliza_id: int,
@@ -139,7 +133,7 @@ def eliminar_poliza(
 
     return {"mensaje": "Póliza eliminada correctamente"}
 
-# ---------------- CRON PROTEGIDO ----------------
+# ---------------- CRON 30 DÍAS ----------------
 
 @app.post("/revisar-vencimientos")
 def revisar_vencimientos(
@@ -152,7 +146,7 @@ def revisar_vencimientos(
         raise HTTPException(status_code=403, detail="Acceso no autorizado")
 
     hoy = datetime.utcnow().date()
-    fecha_objetivo = hoy + timedelta(days=15)
+    fecha_objetivo = hoy + timedelta(days=30)
 
     polizas = db.query(Poliza).filter(
         Poliza.fecha_vencimiento == fecha_objetivo,

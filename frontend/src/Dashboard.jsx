@@ -71,6 +71,16 @@ export default function Dashboard({ onLogout }) {
     loadData();
   };
 
+  // 🔥 NUEVO CÁLCULO 30 DÍAS O MENOS
+  const hoy = new Date();
+
+  const proximas = polizas.filter((p) => {
+    const venc = new Date(p.fecha_vencimiento);
+    const diffTime = venc - hoy;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays <= 30 && diffDays >= 0;
+  });
+
   return (
     <div style={{ padding: "30px", fontFamily: "Arial" }}>
       <h2>Dashboard</h2>
@@ -85,6 +95,29 @@ export default function Dashboard({ onLogout }) {
       </button>
 
       <hr />
+
+      {/* 🔴 SECCIÓN 30 DÍAS O MENOS */}
+      {proximas.length > 0 && (
+        <div
+          style={{
+            backgroundColor: "#ffe5e5",
+            padding: "15px",
+            marginBottom: "20px",
+            border: "1px solid red",
+          }}
+        >
+          <h3 style={{ color: "red" }}>
+            ⚠️ Pólizas que vencen en 30 días o menos
+          </h3>
+          <ul>
+            {proximas.map((p) => (
+              <li key={p.id}>
+                {p.numero_poliza} - {p.bien} - {p.fecha_vencimiento}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <h3>{editingId ? "Editar póliza" : "Nueva póliza"}</h3>
 
