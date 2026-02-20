@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 import smtplib
@@ -7,6 +8,12 @@ import os
 
 from .database import SessionLocal, engine
 from .models import Base, Poliza
+from .auth import (
+    authenticate_user,
+    create_access_token,
+    get_current_user,
+    ACCESS_TOKEN_EXPIRE_MINUTES
+)
 
 Base.metadata.create_all(bind=engine)
 
@@ -22,6 +29,28 @@ def get_db():
 @app.get("/")
 def read_root():
     return {"mensaje": "Backend funcionando"}
+
+# -------------------------
+# LOGIN
+# -------------------------
+
+@app.post("/login")
+def login(form_data: OAuth2PasswordRequestForm = Depends()):
+    user = authenticate_user(form_data.username, form_data.password)
+
+    if not user:
+        raise HTTPException(status_code=401, detail="Credenciales incorrectas")
+
+    access_token = create_access_token(
+        data={"sub": user["username"]},
+        expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
+    )
+
+    return {"access_token": access_token, "token_type": "bearer"}
+
+# -------------------------
+# CRUD POLIZAS (AÚN SIN PROTEGER)
+# -------------------------
 
 @app.post("/polizas")
 def crear_poliza(data: dict, db: Session = Depends(get_db)):
@@ -127,6 +156,10 @@ def eliminar_poliza(poliza_id: int, db: Session = Depends(get_db)):
     db.commit()
 
     return {"mensaje": "Póliza eliminada correctamente"}
+
+# -------------------------
+# REVISIÓN VENCIMIENTOS
+# -------------------------
 
 @app.post("/revisar-vencimientos")
 def revisar_vencimientos(db: Session = Depends(get_db)):
