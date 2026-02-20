@@ -43,9 +43,9 @@ def revisar_vencimientos():
         ).all()
 
         for poliza in polizas:
-            asunto = "Aviso: Vencimiento de póliza en 15 días"
+            asunto = "PRUEBA - Vencimiento en 15 días"
             mensaje = f"""
-ATENCIÓN
+PRUEBA DE SISTEMA
 
 La póliza número: {poliza.numero_poliza}
 Bien asegurado: {poliza.bien}
@@ -72,5 +72,5 @@ Faltan 15 días para su vencimiento.
 
 def iniciar_scheduler():
     scheduler = BackgroundScheduler()
-    scheduler.add_job(revisar_vencimientos, "interval", hours=24)
+    scheduler.add_job(revisar_vencimientos, "interval", minutes=1)
     scheduler.start()
