@@ -4,23 +4,6 @@ from typing import Optional
 
 
 # =========================
-# USER
-# =========================
-
-class UserBase(BaseModel):
-    username: str
-
-class UserCreate(UserBase):
-    password: str
-
-class UserOut(UserBase):
-    id: int
-
-    class Config:
-        from_attributes = True
-
-
-# =========================
 # POLIZA
 # =========================
 
@@ -41,12 +24,12 @@ class PolizaCreate(PolizaBase):
     pass
 
 
-class PolizaOut(PolizaBase):
+class PolizaResponse(PolizaBase):
     id: int
     aviso_enviado: bool
     created_at: datetime
     updated_at: datetime
-    dias_restantes: int
+    dias_restantes: Optional[int] = None
 
     class Config:
         from_attributes = True
@@ -67,7 +50,7 @@ class RenovacionCreate(RenovacionBase):
     pass
 
 
-class RenovacionOut(RenovacionBase):
+class RenovacionResponse(RenovacionBase):
     id: int
     created_at: datetime
 
@@ -93,7 +76,7 @@ class SiniestroCreate(SiniestroBase):
     pass
 
 
-class SiniestroOut(SiniestroBase):
+class SiniestroResponse(SiniestroBase):
     id: int
     created_at: datetime
 
