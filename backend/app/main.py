@@ -17,7 +17,10 @@ from .auth import (
 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI()
+app = FastAPI(
+    title="Control Seguros API",
+    version="1.0",
+)
 
 def get_db():
     db = SessionLocal()
@@ -49,38 +52,8 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
     return {"access_token": access_token, "token_type": "bearer"}
 
 # -------------------------
-# CRUD POLIZAS (AHORA PROTEGIDO)
+# CRUD POLIZAS (PROTEGIDO)
 # -------------------------
-
-@app.post("/polizas")
-def crear_poliza(
-    data: dict,
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
-):
-
-    poliza_existente = db.query(Poliza).filter(
-        Poliza.numero_poliza == data["numero_poliza"]
-    ).first()
-
-    if poliza_existente:
-        raise HTTPException(status_code=400, detail="Número de póliza ya existe")
-
-    nueva = Poliza(
-        numero_poliza=data["numero_poliza"],
-        bien=data["bien"],
-        prima=data["prima"],
-        fecha_inicio=datetime.strptime(data["fecha_inicio"], "%Y-%m-%d").date(),
-        fecha_vencimiento=datetime.strptime(data["fecha_vencimiento"], "%Y-%m-%d").date(),
-        estado=data.get("estado", "Activa"),
-        aviso_enviado=False
-    )
-
-    db.add(nueva)
-    db.commit()
-    db.refresh(nueva)
-
-    return {"mensaje": "Póliza creada correctamente", "id": nueva.id}
 
 @app.get("/polizas")
 def listar_polizas(
@@ -105,80 +78,30 @@ def listar_polizas(
         for p in polizas
     ]
 
-@app.get("/polizas/{poliza_id}")
-def obtener_poliza(
-    poliza_id: int,
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
-):
-    poliza = db.query(Poliza).filter(Poliza.id == poliza_id).first()
-
-    if not poliza:
-        raise HTTPException(status_code=404, detail="Póliza no encontrada")
-
-    return {
-        "id": poliza.id,
-        "numero_poliza": poliza.numero_poliza,
-        "bien": poliza.bien,
-        "prima": poliza.prima,
-        "fecha_inicio": poliza.fecha_inicio,
-        "fecha_vencimiento": poliza.fecha_vencimiento,
-        "estado": poliza.estado,
-        "aviso_enviado": poliza.aviso_enviado,
-        "created_at": poliza.created_at,
-        "updated_at": poliza.updated_at,
-    }
-
-@app.put("/polizas/{poliza_id}")
-def actualizar_poliza(
-    poliza_id: int,
+@app.post("/polizas")
+def crear_poliza(
     data: dict,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
+    nueva = Poliza(
+        numero_poliza=data["numero_poliza"],
+        bien=data["bien"],
+        prima=data["prima"],
+        fecha_inicio=datetime.strptime(data["fecha_inicio"], "%Y-%m-%d").date(),
+        fecha_vencimiento=datetime.strptime(data["fecha_vencimiento"], "%Y-%m-%d").date(),
+        estado=data.get("estado", "Activa"),
+        aviso_enviado=False
+    )
 
-    poliza = db.query(Poliza).filter(Poliza.id == poliza_id).first()
-
-    if not poliza:
-        raise HTTPException(status_code=404, detail="Póliza no encontrada")
-
-    if "bien" in data:
-        poliza.bien = data["bien"]
-
-    if "prima" in data:
-        poliza.prima = data["prima"]
-
-    if "fecha_vencimiento" in data:
-        poliza.fecha_vencimiento = datetime.strptime(
-            data["fecha_vencimiento"], "%Y-%m-%d"
-        ).date()
-
-    if "estado" in data:
-        poliza.estado = data["estado"]
-
+    db.add(nueva)
     db.commit()
+    db.refresh(nueva)
 
-    return {"mensaje": "Póliza actualizada correctamente"}
-
-@app.delete("/polizas/{poliza_id}")
-def eliminar_poliza(
-    poliza_id: int,
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
-):
-
-    poliza = db.query(Poliza).filter(Poliza.id == poliza_id).first()
-
-    if not poliza:
-        raise HTTPException(status_code=404, detail="Póliza no encontrada")
-
-    db.delete(poliza)
-    db.commit()
-
-    return {"mensaje": "Póliza eliminada correctamente"}
+    return {"mensaje": "Póliza creada correctamente", "id": nueva.id}
 
 # -------------------------
-# REVISIÓN VENCIMIENTOS (AÚN SIN PROTEGER)
+# REVISIÓN VENCIMIENTOS (SIN PROTEGER AÚN)
 # -------------------------
 
 @app.post("/revisar-vencimientos")
