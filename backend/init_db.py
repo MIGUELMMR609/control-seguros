@@ -1,24 +1,24 @@
 from sqlalchemy.orm import Session
 from backend.app.database import SessionLocal
-from backend.app.models import User
-from passlib.context import CryptContext
+from backend.app import models
+import hashlib
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def hash_password(password: str):
+    return hashlib.sha256(password.encode()).hexdigest()
+
 
 def create_initial_user():
     db: Session = SessionLocal()
 
-    user = db.query(User).filter(User.username == "miguel").first()
+    existing_user = db.query(models.User).filter(models.User.username == "miguel").first()
 
-    if not user:
-        hashed_password = pwd_context.hash("1234")
-
-        new_user = User(
+    if not existing_user:
+        user = models.User(
             username="miguel",
-            password=hashed_password
+            password=hash_password("1234")
         )
-
-        db.add(new_user)
+        db.add(user)
         db.commit()
         print("Usuario inicial creado.")
     else:
