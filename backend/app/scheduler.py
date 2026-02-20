@@ -12,14 +12,22 @@ def enviar_email(destinatario, asunto, mensaje):
     gmail_user = os.getenv("EMAIL_USER")
     gmail_password = os.getenv("EMAIL_PASSWORD")
 
+    if not gmail_user or not gmail_password:
+        print("EMAIL_USER o EMAIL_PASSWORD no configurados")
+        return
+
     msg = MIMEText(mensaje)
     msg["Subject"] = asunto
     msg["From"] = gmail_user
     msg["To"] = destinatario
 
-    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-        server.login(gmail_user, gmail_password)
-        server.sendmail(gmail_user, destinatario, msg.as_string())
+    try:
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+            server.login(gmail_user, gmail_password)
+            server.sendmail(gmail_user, destinatario, msg.as_string())
+            print("Email enviado correctamente")
+    except Exception as e:
+        print("Error enviando email:", e)
 
 
 def revisar_vencimientos():
@@ -34,14 +42,14 @@ def revisar_vencimientos():
         for poliza in polizas:
             if (
                 poliza.fecha_vencimiento == aviso_fecha
-                and not poliza.aviso_enviado
+                and poliza.aviso_enviado is False
             ):
                 asunto = "Aviso de vencimiento de póliza"
                 mensaje = f"""
 La póliza {poliza.numero_poliza}
 del bien {poliza.bien}
 vence el {poliza.fecha_vencimiento}.
-"""
+                """
 
                 enviar_email(
                     destinatario=os.getenv("EMAIL_USER"),
@@ -58,9 +66,5 @@ vence el {poliza.fecha_vencimiento}.
 
 def iniciar_scheduler():
     scheduler = BackgroundScheduler()
-    scheduler.add_job(
-        revisar_vencimientos,
-        "interval",
-        hours=24
-    )
+    scheduler.add_job(revisar_vencimientos, "interval", hours=24)
     scheduler.start()
