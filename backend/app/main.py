@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Header
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
@@ -52,7 +52,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
     return {"access_token": access_token, "token_type": "bearer"}
 
 # -------------------------
-# CRUD POLIZAS (PROTEGIDO)
+# CRUD POLIZAS (PROTEGIDO JWT)
 # -------------------------
 
 @app.get("/polizas")
@@ -101,11 +101,19 @@ def crear_poliza(
     return {"mensaje": "Póliza creada correctamente", "id": nueva.id}
 
 # -------------------------
-# REVISIÓN VENCIMIENTOS (SIN PROTEGER AÚN)
+# CRON PROTEGIDO POR API KEY
 # -------------------------
 
 @app.post("/revisar-vencimientos")
-def revisar_vencimientos(db: Session = Depends(get_db)):
+def revisar_vencimientos(
+    db: Session = Depends(get_db),
+    x_cron_key: str = Header(None)
+):
+
+    secret = os.getenv("CRON_SECRET_KEY")
+
+    if not x_cron_key or x_cron_key != secret:
+        raise HTTPException(status_code=403, detail="Acceso no autorizado")
 
     hoy = datetime.utcnow().date()
     fecha_objetivo = hoy + timedelta(days=15)
