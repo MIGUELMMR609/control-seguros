@@ -1,33 +1,33 @@
-import os
-from datetime import datetime, timedelta
-from sqlalchemy.orm import Session
 from apscheduler.schedulers.background import BackgroundScheduler
+from sqlalchemy.orm import Session
+from datetime import datetime, timedelta
 from .database import SessionLocal
-from . import models
+from .models import Poliza
 import smtplib
+import os
 from email.mime.text import MIMEText
 
 
 def enviar_email(destinatario, asunto, mensaje):
-    gmail_user = os.getenv("EMAIL_USER")
-    gmail_password = os.getenv("EMAIL_PASSWORD")
-
-    if not gmail_user or not gmail_password:
-        print("EMAIL_USER o EMAIL_PASSWORD no configurados")
-        return
-
-    msg = MIMEText(mensaje)
-    msg["Subject"] = asunto
-    msg["From"] = gmail_user
-    msg["To"] = destinatario
-
     try:
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-            server.login(gmail_user, gmail_password)
-            server.sendmail(gmail_user, destinatario, msg.as_string())
-            print("Email enviado correctamente")
+        smtp_server = "smtp.gmail.com"
+        smtp_port = 465
+        email_user = os.getenv("EMAIL_USER")
+        email_password = os.getenv("EMAIL_PASSWORD")
+
+        msg = MIMEText(mensaje)
+        msg["Subject"] = asunto
+        msg["From"] = email_user
+        msg["To"] = destinatario
+
+        with smtplib.SMTP_SSL(smtp_server, smtp_port) as server:
+            server.login(email_user, email_password)
+            server.send_message(msg)
+
+        print("EMAIL ENVIADO CORRECTAMENTE")
+
     except Exception as e:
-        print("Error enviando email:", e)
+        print("ERROR ENVIANDO EMAIL:", e)
 
 
 def revisar_vencimientos():
@@ -35,30 +35,36 @@ def revisar_vencimientos():
 
     try:
         hoy = datetime.utcnow().date()
-        aviso_fecha = hoy + timedelta(days=15)
+        fecha_objetivo = hoy + timedelta(days=15)
 
-        polizas = db.query(models.Poliza).all()
+        polizas = db.query(Poliza).filter(
+            Poliza.fecha_vencimiento == fecha_objetivo,
+            Poliza.aviso_enviado == False
+        ).all()
 
         for poliza in polizas:
-            if (
-                poliza.fecha_vencimiento == aviso_fecha
-                and poliza.aviso_enviado is False
-            ):
-                asunto = "Aviso de vencimiento de póliza"
-                mensaje = f"""
-La póliza {poliza.numero_poliza}
-del bien {poliza.bien}
-vence el {poliza.fecha_vencimiento}.
-                """
+            asunto = "Aviso: Vencimiento de póliza en 15 días"
+            mensaje = f"""
+ATENCIÓN
 
-                enviar_email(
-                    destinatario=os.getenv("EMAIL_USER"),
-                    asunto=asunto,
-                    mensaje=mensaje
-                )
+La póliza número: {poliza.numero_poliza}
+Bien asegurado: {poliza.bien}
+Fecha de vencimiento: {poliza.fecha_vencimiento}
 
-                poliza.aviso_enviado = True
-                db.commit()
+Faltan 15 días para su vencimiento.
+"""
+
+            enviar_email(
+                os.getenv("EMAIL_USER"),
+                asunto,
+                mensaje
+            )
+
+            poliza.aviso_enviado = True
+            db.commit()
+
+    except Exception as e:
+        print("ERROR EN REVISIÓN:", e)
 
     finally:
         db.close()
