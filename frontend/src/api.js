@@ -1,39 +1,43 @@
-const API = "https://control-seguros-api.onrender.com";
+const API_URL = "https://control-seguros-backend-pro.onrender.com";
 
-export async function loginRequest(username, password) {
-  const body = new URLSearchParams();
-  body.append("grant_type", "password");
-  body.append("username", username);
-  body.append("password", password);
-  body.append("scope", "");
-  body.append("client_id", "string");
-  body.append("client_secret", "string");
+export const login = async (username, password) => {
+  const formData = new URLSearchParams();
+  formData.append("username", username);
+  formData.append("password", password);
 
-  const response = await fetch(`${API}/login`, {
+  const response = await fetch(`${API_URL}/login`, {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
     },
-    body: body.toString(),
+    body: formData,
   });
 
   if (!response.ok) {
     throw new Error("Credenciales incorrectas");
   }
 
-  return response.json();
-}
+  const data = await response.json();
+  localStorage.setItem("token", data.access_token);
+  return data;
+};
 
-export async function getPolizas(token) {
-  const response = await fetch(`${API}/polizas`, {
+export const getPolizas = async () => {
+  const token = localStorage.getItem("token");
+
+  const response = await fetch(`${API_URL}/polizas`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
   });
 
   if (!response.ok) {
-    throw new Error("Error al cargar pólizas");
+    throw new Error("No autorizado");
   }
 
   return response.json();
-}
+};
+
+export const logout = () => {
+  localStorage.removeItem("token");
+};

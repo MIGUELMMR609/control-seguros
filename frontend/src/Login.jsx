@@ -1,51 +1,42 @@
 import { useState } from "react";
-import { loginRequest } from "./api";
+import { login } from "./api";
 
-function Login({ setToken }) {
+export default function Login({ onLogin }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
-  const handleLogin = async () => {
-    setError("");
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
     try {
-      const data = await loginRequest(username, password);
-      setToken(data.access_token);
+      await login(username, password);
+      onLogin();
     } catch (err) {
-      setError("Usuario o contraseña incorrectos");
+      setError("Credenciales incorrectas");
     }
   };
 
   return (
-    <div style={{ padding: 40 }}>
-      <h2>Iniciar Sesión</h2>
-
-      <input
-        placeholder="Usuario"
-        value={username}
-        onChange={(e) => setUsername(e.target.value)}
-      />
-      <br /><br />
-
-      <input
-        type="password"
-        placeholder="Contraseña"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-      />
-      <br /><br />
-
-      <button onClick={handleLogin}>Entrar</button>
-
-      {error && (
-        <>
-          <br /><br />
-          <div style={{ color: "red" }}>{error}</div>
-        </>
-      )}
+    <div>
+      <h2>Login</h2>
+      <form onSubmit={handleSubmit}>
+        <input
+          placeholder="Usuario"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+        />
+        <br />
+        <input
+          type="password"
+          placeholder="Contraseña"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        <br />
+        <button type="submit">Entrar</button>
+      </form>
+      {error && <p style={{ color: "red" }}>{error}</p>}
     </div>
   );
 }
-
-export default Login;

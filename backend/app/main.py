@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException, Header
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 import smtplib
@@ -21,6 +22,25 @@ app = FastAPI(
     title="Control Seguros API",
     version="1.0",
 )
+
+# -------------------------
+# CORS CONFIGURATION
+# -------------------------
+
+origins = [
+    "http://localhost:5173",
+    "https://control-seguros-web.onrender.com"
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# -------------------------
 
 def get_db():
     db = SessionLocal()
@@ -101,7 +121,7 @@ def crear_poliza(
     return {"mensaje": "Póliza creada correctamente", "id": nueva.id}
 
 # -------------------------
-# CRON PROTEGIDO POR API KEY
+# CRON PROTEGIDO
 # -------------------------
 
 @app.post("/revisar-vencimientos")
