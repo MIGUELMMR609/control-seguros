@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
@@ -48,39 +48,50 @@ def root():
     return {"mensaje": "Backend funcionando"}
 
 
+@app.get("/ver-polizas")
+def ver_polizas():
+    db: Session = SessionLocal()
+    polizas = db.query(models.Poliza).all()
+    resultado = []
+
+    for p in polizas:
+        resultado.append({
+            "id": p.id,
+            "numero_poliza": p.numero_poliza,
+            "fecha_vencimiento": p.fecha_vencimiento,
+            "aviso_enviado": p.aviso_enviado
+        })
+
+    db.close()
+    return resultado
+
+
 @app.post("/revisar-vencimientos")
 def revisar_vencimientos():
     db: Session = SessionLocal()
+    hoy = datetime.utcnow().date()
+    fecha_objetivo = hoy + timedelta(days=15)
 
-    try:
-        hoy = datetime.utcnow().date()
-        fecha_objetivo = hoy + timedelta(days=15)
+    polizas = db.query(models.Poliza).filter(
+        models.Poliza.fecha_vencimiento == fecha_objetivo,
+        models.Poliza.aviso_enviado == False
+    ).all()
 
-        polizas = db.query(models.Poliza).filter(
-            models.Poliza.fecha_vencimiento == fecha_objetivo,
-            models.Poliza.aviso_enviado == False
-        ).all()
-
-        for poliza in polizas:
-            asunto = "Aviso: Vencimiento en 15 días"
-            mensaje = f"""
+    for poliza in polizas:
+        asunto = "Aviso: Vencimiento en 15 días"
+        mensaje = f"""
 La póliza {poliza.numero_poliza}
-del bien {poliza.bien}
 vence el día {poliza.fecha_vencimiento}.
-
-Faltan 15 días.
 """
 
-            enviar_email(
-                os.getenv("EMAIL_USER"),
-                asunto,
-                mensaje
-            )
+        enviar_email(
+            os.getenv("EMAIL_USER"),
+            asunto,
+            mensaje
+        )
 
-            poliza.aviso_enviado = True
-            db.commit()
+        poliza.aviso_enviado = True
+        db.commit()
 
-        return {"polizas_revisadas": len(polizas)}
-
-    finally:
-        db.close()
+    db.close()
+    return {"polizas_revisadas": len(polizas)}
