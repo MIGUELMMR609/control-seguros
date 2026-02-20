@@ -1,30 +1,22 @@
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-import os
 
 SECRET_KEY = "CAMBIAR_ESTA_CLAVE_EN_PRODUCCION"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
-# Usuario administrador simple (inicial)
+# Usuario administrador simple
 ADMIN_USERNAME = "admin"
-ADMIN_PASSWORD_HASH = pwd_context.hash("admin123")
-
-def verify_password(plain_password, hashed_password):
-    return pwd_context.verify(plain_password, hashed_password)
+ADMIN_PASSWORD = "admin123"
 
 def authenticate_user(username: str, password: str):
-    if username != ADMIN_USERNAME:
-        return False
-    if not verify_password(password, ADMIN_PASSWORD_HASH):
-        return False
-    return {"username": username}
+    if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
+        return {"username": username}
+    return False
 
 def create_access_token(data: dict, expires_delta: timedelta | None = None):
     to_encode = data.copy()
