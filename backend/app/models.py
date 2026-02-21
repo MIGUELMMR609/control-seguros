@@ -4,10 +4,6 @@ from datetime import datetime
 from backend.app.database import Base
 
 
-# =========================
-# USER
-# =========================
-
 class User(Base):
     __tablename__ = "users"
 
@@ -16,10 +12,6 @@ class User(Base):
     password = Column(String, nullable=False)
 
 
-# =========================
-# COMPANIAS
-# =========================
-
 class Compania(Base):
     __tablename__ = "companias"
 
@@ -27,20 +19,12 @@ class Compania(Base):
     nombre = Column(String, unique=True, nullable=False)
 
 
-# =========================
-# TIPOS
-# =========================
-
 class Tipo(Base):
     __tablename__ = "tipos"
 
     id = Column(Integer, primary_key=True, index=True)
     nombre = Column(String, unique=True, nullable=False)
 
-
-# =========================
-# POLIZA
-# =========================
 
 class Poliza(Base):
     __tablename__ = "polizas"
@@ -62,10 +46,10 @@ class Poliza(Base):
 
     estado = Column(String, default="activa")
 
-    # ---- V4 CONFIGURACIÓN DINÁMICA ----
+    # V4 configuración dinámica
     aviso_30 = Column(Boolean, default=True)
     aviso_15 = Column(Boolean, default=True)
-    aviso_7  = Column(Boolean, default=True)
+    aviso_7 = Column(Boolean, default=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow)
@@ -74,10 +58,6 @@ class Poliza(Base):
     tipo = relationship("Tipo")
     avisos = relationship("AvisoEnviado", back_populates="poliza")
 
-
-# =========================
-# AVISOS ENVIADOS
-# =========================
 
 class AvisoEnviado(Base):
     __tablename__ = "avisos_enviados"
@@ -90,10 +70,6 @@ class AvisoEnviado(Base):
     poliza = relationship("Poliza", back_populates="avisos")
 
 
-# =========================
-# RENOVACIONES
-# =========================
-
 class Renovacion(Base):
     __tablename__ = "renovaciones"
 
@@ -104,10 +80,6 @@ class Renovacion(Base):
     fecha_renovacion = Column(Date, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-
-# =========================
-# SINIESTROS
-# =========================
 
 class Siniestro(Base):
     __tablename__ = "siniestros"
@@ -120,4 +92,4 @@ class Siniestro(Base):
     descripcion = Column(String, nullable=True)
     acciones = Column(String, nullable=True)
     finalizado = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)∫
+    created_at = Column(DateTime, default=datetime.utcnow)
