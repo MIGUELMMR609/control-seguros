@@ -55,6 +55,16 @@ export default function Dashboard({ onLogout }) {
     loadData();
   }, []);
 
+  const toggleConfig = async (poliza, campo) => {
+    const updated = {
+      ...poliza,
+      [campo]: !poliza[campo],
+    };
+
+    await updatePoliza(poliza.id, updated);
+    loadData();
+  };
+
   const loadAvisos = async (polizaId) => {
     const token = localStorage.getItem("token");
 
@@ -133,7 +143,7 @@ export default function Dashboard({ onLogout }) {
 
   return (
     <div style={{ padding: "30px", fontFamily: "Arial" }}>
-      <h2>Dashboard V3</h2>
+      <h2>Dashboard V4</h2>
 
       {totalUrgentes > 0 && (
         <div
@@ -221,6 +231,7 @@ export default function Dashboard({ onLogout }) {
             <th>Bien</th>
             <th>Prima</th>
             <th>Vencimiento</th>
+            <th>Avisos</th>
             <th>Acciones</th>
           </tr>
         </thead>
@@ -244,7 +255,6 @@ export default function Dashboard({ onLogout }) {
                         ({dias} días)
                       </span>
                     )}
-
                     <div
                       style={{
                         height: "6px",
@@ -263,20 +273,47 @@ export default function Dashboard({ onLogout }) {
                       />
                     </div>
                   </td>
+
+                  <td>
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={p.aviso_30}
+                        onChange={() => toggleConfig(p, "aviso_30")}
+                      /> 30
+                    </label>
+                    <br />
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={p.aviso_15}
+                        onChange={() => toggleConfig(p, "aviso_15")}
+                      /> 15
+                    </label>
+                    <br />
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={p.aviso_7}
+                        onChange={() => toggleConfig(p, "aviso_7")}
+                      /> 7
+                    </label>
+                  </td>
+
                   <td>
                     <button onClick={() => handleEdit(p)}>Editar</button>
                     <button onClick={() => handleDelete(p.id)}>
                       Eliminar
                     </button>
                     <button onClick={() => toggleExpand(p.id)}>
-                      Historial avisos
+                      Historial
                     </button>
                   </td>
                 </tr>
 
                 {expanded === p.id && (
                   <tr>
-                    <td colSpan="6">
+                    <td colSpan="7">
                       <strong>Histórico:</strong>
                       <ul>
                         {avisos[p.id]?.length === 0 && (
