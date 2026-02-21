@@ -9,7 +9,6 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
-# Usuario administrador simple
 ADMIN_USERNAME = "admin"
 ADMIN_PASSWORD = "admin123"
 

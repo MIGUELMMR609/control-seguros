@@ -2,6 +2,11 @@ const API_URL = "https://control-seguros-backend-pro.onrender.com";
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem("token");
+
+  if (!token) {
+    throw new Error("No autenticado");
+  }
+
   return {
     Authorization: `Bearer ${token}`,
     "Content-Type": "application/json",
@@ -21,7 +26,9 @@ export const login = async (username, password) => {
     body: formData,
   });
 
-  if (!response.ok) throw new Error("Credenciales incorrectas");
+  if (!response.ok) {
+    throw new Error("Credenciales incorrectas");
+  }
 
   const data = await response.json();
   localStorage.setItem("token", data.access_token);
@@ -32,7 +39,15 @@ export const getPolizas = async () => {
     headers: getAuthHeaders(),
   });
 
-  if (!response.ok) throw new Error("Error cargando pólizas");
+  if (response.status === 401) {
+    localStorage.removeItem("token");
+    window.location.reload();
+    return;
+  }
+
+  if (!response.ok) {
+    throw new Error("Error cargando pólizas");
+  }
 
   return response.json();
 };
@@ -44,7 +59,11 @@ export const createPoliza = async (poliza) => {
     body: JSON.stringify(poliza),
   });
 
-  if (!response.ok) throw new Error("Error creando póliza");
+  if (!response.ok) {
+    throw new Error("Error creando póliza");
+  }
+
+  return response.json();
 };
 
 export const updatePoliza = async (id, poliza) => {
@@ -54,7 +73,11 @@ export const updatePoliza = async (id, poliza) => {
     body: JSON.stringify(poliza),
   });
 
-  if (!response.ok) throw new Error("Error actualizando póliza");
+  if (!response.ok) {
+    throw new Error("Error actualizando póliza");
+  }
+
+  return response.json();
 };
 
 export const deletePoliza = async (id) => {
@@ -63,7 +86,27 @@ export const deletePoliza = async (id) => {
     headers: getAuthHeaders(),
   });
 
-  if (!response.ok) throw new Error("Error eliminando póliza");
+  if (!response.ok) {
+    throw new Error("Error eliminando póliza");
+  }
+
+  return response.json();
+};
+
+export const enviarRecordatorio = async (id) => {
+  const response = await fetch(
+    `${API_URL}/enviar-recordatorio/${id}`,
+    {
+      method: "POST",
+      headers: getAuthHeaders(),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Error enviando recordatorio");
+  }
+
+  return response.json();
 };
 
 export const logout = () => {

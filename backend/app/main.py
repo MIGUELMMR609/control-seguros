@@ -1,10 +1,16 @@
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from datetime import datetime
+from datetime import timedelta
 from .database import SessionLocal, engine
 from .models import Base, Poliza
-from .auth import get_current_user
+from .auth import (
+    authenticate_user,
+    create_access_token,
+    get_current_user,
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+)
 import smtplib
 from email.message import EmailMessage
 import os
@@ -20,6 +26,24 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# -------- LOGIN --------
+
+@app.post("/login")
+def login(form_data: OAuth2PasswordRequestForm = Depends()):
+    user = authenticate_user(form_data.username, form_data.password)
+
+    if not user:
+        raise HTTPException(status_code=401, detail="Credenciales incorrectas")
+
+    access_token = create_access_token(
+        data={"sub": user["username"]},
+        expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
+    )
+
+    return {"access_token": access_token, "token_type": "bearer"}
+
+# -------- EMAIL --------
 
 def enviar_email(poliza):
     msg = EmailMessage()
@@ -38,6 +62,7 @@ def enviar_email(poliza):
         )
         server.send_message(msg)
 
+# -------- CRUD --------
 
 @app.get("/polizas")
 def listar_polizas(user: str = Depends(get_current_user)):
