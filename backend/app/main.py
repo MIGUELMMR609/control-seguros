@@ -122,6 +122,29 @@ def revisar_vencimientos(request: Request):
     return {"mensaje": "Revisión ejecutada correctamente"}
 
 
+# ---------------- ENDPOINT HISTÓRICO AVISOS ----------------
+
+@app.get("/polizas/{poliza_id}/avisos")
+def obtener_avisos(poliza_id: int, user: str = Depends(get_current_user)):
+    db = SessionLocal()
+
+    avisos = db.query(AvisoEnviado).filter(
+        AvisoEnviado.poliza_id == poliza_id
+    ).all()
+
+    resultado = [
+        {
+            "id": a.id,
+            "tipo_aviso": a.tipo_aviso,
+            "fecha_envio": a.fecha_envio
+        }
+        for a in avisos
+    ]
+
+    db.close()
+    return resultado
+
+
 # ---------------- CRUD POLIZAS ----------------
 
 @app.get("/polizas")
