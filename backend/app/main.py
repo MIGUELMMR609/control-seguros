@@ -184,3 +184,22 @@ def crear_columna():
     db.commit()
     db.close()
     return {"mensaje": "Columna creada si no existía"}
+@app.get("/debug-dias/{poliza_id}")
+def debug_dias(poliza_id: int):
+    db = SessionLocal()
+    poliza = db.query(Poliza).filter(Poliza.id == poliza_id).first()
+
+    if not poliza:
+        db.close()
+        return {"error": "No encontrada"}
+
+    hoy = date.today()
+    dias = (poliza.fecha_vencimiento - hoy).days
+
+    db.close()
+
+    return {
+        "hoy_backend": str(hoy),
+        "fecha_vencimiento": str(poliza.fecha_vencimiento),
+        "dias_restantes_backend": dias
+    }
