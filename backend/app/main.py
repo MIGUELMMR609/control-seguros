@@ -150,3 +150,13 @@ def ver_columnas():
     """)).fetchall()
     db.close()
     return {"columnas": [r[0] for r in resultado]}
+@app.get("/debug-crear-columna")
+def crear_columna():
+    db = SessionLocal()
+    db.execute(text("""
+        ALTER TABLE polizas
+        ADD COLUMN IF NOT EXISTS fecha_aviso_enviado TIMESTAMP NULL;
+    """))
+    db.commit()
+    db.close()
+    return {"mensaje": "Columna creada si no existía"}
