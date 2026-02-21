@@ -220,3 +220,18 @@ def debug_poliza(poliza_id: int):
 
     db.close()
     return resultado
+@app.get("/debug-reset/{poliza_id}")
+def debug_reset(poliza_id: int):
+    db = SessionLocal()
+    poliza = db.query(Poliza).filter(Poliza.id == poliza_id).first()
+
+    if not poliza:
+        db.close()
+        return {"error": "No encontrada"}
+
+    poliza.aviso_enviado = False
+    poliza.fecha_aviso_enviado = None
+    db.commit()
+    db.close()
+
+    return {"mensaje": "Reseteada correctamente"}
