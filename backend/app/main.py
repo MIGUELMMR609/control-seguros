@@ -203,3 +203,20 @@ def debug_dias(poliza_id: int):
         "fecha_vencimiento": str(poliza.fecha_vencimiento),
         "dias_restantes_backend": dias
     }
+@app.get("/debug-poliza/{poliza_id}")
+def debug_poliza(poliza_id: int):
+    db = SessionLocal()
+    poliza = db.query(Poliza).filter(Poliza.id == poliza_id).first()
+
+    if not poliza:
+        db.close()
+        return {"error": "No encontrada"}
+
+    resultado = {
+        "id": poliza.id,
+        "aviso_enviado": poliza.aviso_enviado,
+        "fecha_aviso_enviado": str(poliza.fecha_aviso_enviado)
+    }
+
+    db.close()
+    return resultado
