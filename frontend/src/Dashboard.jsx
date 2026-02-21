@@ -24,6 +24,28 @@ export default function Dashboard({ onLogout }) {
 
   const [editingId, setEditingId] = useState(null);
 
+  const hoy = new Date();
+
+  const calcularDias = (fecha) => {
+    const venc = new Date(fecha);
+    const diffTime = venc - hoy;
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  };
+
+  const calcularProgreso = (fecha) => {
+    const dias = calcularDias(fecha);
+    const total = 30;
+    const restante = Math.max(0, Math.min(total, dias));
+    return 100 - (restante / total) * 100;
+  };
+
+  const getColor = (dias) => {
+    if (dias <= 7 && dias >= 0) return "#d32f2f";
+    if (dias <= 15 && dias >= 0) return "#f57c00";
+    if (dias <= 30 && dias >= 0) return "#fbc02d";
+    return "#4caf50";
+  };
+
   const loadData = async () => {
     const data = await getPolizas();
     setPolizas(data);
@@ -105,9 +127,28 @@ export default function Dashboard({ onLogout }) {
     loadData();
   };
 
+  const totalUrgentes = polizas.filter(
+    (p) => calcularDias(p.fecha_vencimiento) <= 30
+  ).length;
+
   return (
     <div style={{ padding: "30px", fontFamily: "Arial" }}>
       <h2>Dashboard V3</h2>
+
+      {totalUrgentes > 0 && (
+        <div
+          style={{
+            background: "#ffebee",
+            color: "#c62828",
+            padding: "10px",
+            borderRadius: "6px",
+            marginBottom: "15px",
+            fontWeight: "bold",
+          }}
+        >
+          🔴 {totalUrgentes} pólizas próximas a vencer
+        </div>
+      )}
 
       <button
         onClick={() => {
@@ -184,45 +225,76 @@ export default function Dashboard({ onLogout }) {
           </tr>
         </thead>
         <tbody>
-          {polizas.map((p) => (
-            <>
-              <tr key={p.id}>
-                <td>{p.id}</td>
-                <td>{p.numero_poliza}</td>
-                <td>{p.bien}</td>
-                <td>{p.prima}</td>
-                <td>{p.fecha_vencimiento}</td>
-                <td>
-                  <button onClick={() => handleEdit(p)}>Editar</button>
-                  <button onClick={() => handleDelete(p.id)}>
-                    Eliminar
-                  </button>
-                  <button onClick={() => toggleExpand(p.id)}>
-                    Historial avisos
-                  </button>
-                </td>
-              </tr>
+          {polizas.map((p) => {
+            const dias = calcularDias(p.fecha_vencimiento);
+            const progreso = calcularProgreso(p.fecha_vencimiento);
+            const color = getColor(dias);
 
-              {expanded === p.id && (
-                <tr>
-                  <td colSpan="6">
-                    <strong>Histórico:</strong>
-                    <ul>
-                      {avisos[p.id]?.length === 0 && (
-                        <li>No hay avisos enviados</li>
-                      )}
-                      {avisos[p.id]?.map((a) => (
-                        <li key={a.id}>
-                          Aviso {a.tipo_aviso} días —{" "}
-                          {new Date(a.fecha_envio).toLocaleString()}
-                        </li>
-                      ))}
-                    </ul>
+            return (
+              <>
+                <tr key={p.id}>
+                  <td>{p.id}</td>
+                  <td>{p.numero_poliza}</td>
+                  <td>{p.bien}</td>
+                  <td>{p.prima}</td>
+                  <td style={{ minWidth: "220px" }}>
+                    {p.fecha_vencimiento}{" "}
+                    {dias >= 0 && (
+                      <span style={{ fontSize: "0.85em", color }}>
+                        ({dias} días)
+                      </span>
+                    )}
+
+                    <div
+                      style={{
+                        height: "6px",
+                        background: "#eee",
+                        borderRadius: "4px",
+                        marginTop: "6px",
+                      }}
+                    >
+                      <div
+                        style={{
+                          height: "6px",
+                          width: `${progreso}%`,
+                          background: color,
+                          borderRadius: "4px",
+                        }}
+                      />
+                    </div>
+                  </td>
+                  <td>
+                    <button onClick={() => handleEdit(p)}>Editar</button>
+                    <button onClick={() => handleDelete(p.id)}>
+                      Eliminar
+                    </button>
+                    <button onClick={() => toggleExpand(p.id)}>
+                      Historial avisos
+                    </button>
                   </td>
                 </tr>
-              )}
-            </>
-          ))}
+
+                {expanded === p.id && (
+                  <tr>
+                    <td colSpan="6">
+                      <strong>Histórico:</strong>
+                      <ul>
+                        {avisos[p.id]?.length === 0 && (
+                          <li>No hay avisos enviados</li>
+                        )}
+                        {avisos[p.id]?.map((a) => (
+                          <li key={a.id}>
+                            Aviso {a.tipo_aviso} días —{" "}
+                            {new Date(a.fecha_envio).toLocaleString()}
+                          </li>
+                        ))}
+                      </ul>
+                    </td>
+                  </tr>
+                )}
+              </>
+            );
+          })}
         </tbody>
       </table>
     </div>
