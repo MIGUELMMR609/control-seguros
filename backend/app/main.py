@@ -19,8 +19,6 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
-# ---------------- CORS ----------------
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -69,7 +67,7 @@ def enviar_email(poliza, dias):
         server.send_message(msg)
 
 
-# ---------------- VERIFICACIÓN MULTIAVISO V3 ----------------
+# ---------------- VERIFICACIÓN V4 DINÁMICA ----------------
 
 def verificar_vencimientos():
     db = SessionLocal()
@@ -80,7 +78,17 @@ def verificar_vencimientos():
     for poliza in polizas:
         dias_restantes = (poliza.fecha_vencimiento - hoy).days
 
-        if dias_restantes in [30, 15, 7]:
+        # Evaluación dinámica según configuración
+        tipos_configurados = []
+
+        if poliza.aviso_30:
+            tipos_configurados.append(30)
+        if poliza.aviso_15:
+            tipos_configurados.append(15)
+        if poliza.aviso_7:
+            tipos_configurados.append(7)
+
+        if dias_restantes in tipos_configurados:
 
             ya_enviado = db.query(AvisoEnviado).filter(
                 AvisoEnviado.poliza_id == poliza.id,
@@ -122,7 +130,7 @@ def revisar_vencimientos(request: Request):
     return {"mensaje": "Revisión ejecutada correctamente"}
 
 
-# ---------------- ENDPOINT HISTÓRICO AVISOS ----------------
+# ---------------- HISTÓRICO ----------------
 
 @app.get("/polizas/{poliza_id}/avisos")
 def obtener_avisos(poliza_id: int, user: str = Depends(get_current_user)):
@@ -145,7 +153,7 @@ def obtener_avisos(poliza_id: int, user: str = Depends(get_current_user)):
     return resultado
 
 
-# ---------------- CRUD POLIZAS ----------------
+# ---------------- CRUD ----------------
 
 @app.get("/polizas")
 def listar_polizas(user: str = Depends(get_current_user)):
@@ -197,19 +205,3 @@ def eliminar_poliza(poliza_id: int, user: str = Depends(get_current_user)):
     db.commit()
     db.close()
     return {"mensaje": "Eliminada correctamente"}
-
-
-@app.post("/enviar-recordatorio/{poliza_id}")
-def enviar_recordatorio_manual(poliza_id: int, user: str = Depends(get_current_user)):
-    db = SessionLocal()
-    poliza = db.query(Poliza).filter(Poliza.id == poliza_id).first()
-
-    if not poliza:
-        db.close()
-        raise HTTPException(status_code=404, detail="Póliza no encontrada")
-
-    enviar_email(poliza, 0)
-
-    db.close()
-
-    return {"mensaje": "Recordatorio enviado correctamente"}
