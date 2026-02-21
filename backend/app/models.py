@@ -63,6 +63,7 @@ class Poliza(Base):
     estado = Column(String, default="activa")
 
     aviso_enviado = Column(Boolean, default=False)
+    fecha_aviso_enviado = Column(DateTime, nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow)

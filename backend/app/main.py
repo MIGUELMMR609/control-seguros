@@ -123,6 +123,17 @@ def eliminar_poliza(poliza_id: int, user: str = Depends(get_current_user)):
 
 
 @app.post("/enviar-recordatorio/{poliza_id}")
+@app.get("/debug-columnas")
+def ver_columnas():
+    db = SessionLocal()
+    resultado = db.execute("""
+        SELECT column_name
+        FROM information_schema.columns
+        WHERE table_name = 'polizas'
+    """).fetchall()
+    db.close()
+    return {"columnas": [r[0] for r in resultado]}
+
 def enviar_recordatorio_manual(poliza_id: int, user: str = Depends(get_current_user)):
     db = SessionLocal()
     poliza = db.query(Poliza).filter(Poliza.id == poliza_id).first()
