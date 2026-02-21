@@ -62,14 +62,27 @@ class Poliza(Base):
 
     estado = Column(String, default="activa")
 
-    aviso_enviado = Column(Boolean, default=False)
-    fecha_aviso_enviado = Column(DateTime, nullable=True)
-
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow)
 
     compania = relationship("Compania")
     tipo = relationship("Tipo")
+    avisos = relationship("AvisoEnviado", back_populates="poliza")
+
+
+# =========================
+# AVISOS ENVIADOS (V3)
+# =========================
+
+class AvisoEnviado(Base):
+    __tablename__ = "avisos_enviados"
+
+    id = Column(Integer, primary_key=True, index=True)
+    poliza_id = Column(Integer, ForeignKey("polizas.id"))
+    tipo_aviso = Column(Integer, nullable=False)  # 30 / 15 / 7
+    fecha_envio = Column(DateTime, default=datetime.utcnow)
+
+    poliza = relationship("Poliza", back_populates="avisos")
 
 
 # =========================
