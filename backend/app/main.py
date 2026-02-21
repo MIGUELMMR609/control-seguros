@@ -19,9 +19,13 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
+# 🔐 CORS PROFESIONAL
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:5173",
+        "https://control-seguros-web.onrender.com",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -43,6 +47,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
 
     return {"access_token": access_token, "token_type": "bearer"}
 
+
 # -------- EMAIL --------
 
 def enviar_email(poliza):
@@ -61,6 +66,7 @@ def enviar_email(poliza):
             os.getenv("EMAIL_PASSWORD"),
         )
         server.send_message(msg)
+
 
 # -------- CRUD --------
 
