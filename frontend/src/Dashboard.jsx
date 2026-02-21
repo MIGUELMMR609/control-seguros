@@ -115,7 +115,6 @@ export default function Dashboard({ onLogout }) {
 
   let processedPolizas = [...polizas];
 
-  // 🔎 BÚSQUEDA
   if (searchTerm) {
     processedPolizas = processedPolizas.filter(
       (p) =>
@@ -124,20 +123,17 @@ export default function Dashboard({ onLogout }) {
     );
   }
 
-  // 🔴 FILTRO URGENTE
   if (filterUrgent) {
     processedPolizas = processedPolizas.filter(
       (p) => calcularDias(p.fecha_vencimiento) <= 30
     );
 
-    // 🔥 ORDEN AUTOMÁTICO POR URGENCIA
     processedPolizas.sort(
       (a, b) =>
         calcularDias(a.fecha_vencimiento) -
         calcularDias(b.fecha_vencimiento)
     );
   } else {
-    // 🔵 ORDEN NORMAL SI NO ESTÁ FILTRADO
     processedPolizas.sort((a, b) => {
       if (!sortConfig.key) return 0;
 
@@ -164,7 +160,7 @@ export default function Dashboard({ onLogout }) {
 
   return (
     <div style={{ padding: "30px", fontFamily: "Arial" }}>
-      <h2 style={{ marginBottom: "10px" }}>Dashboard</h2>
+      <h2>Dashboard</h2>
 
       {totalUrgentes > 0 && (
         <div
@@ -186,101 +182,52 @@ export default function Dashboard({ onLogout }) {
           logout();
           onLogout();
         }}
-        style={{ marginBottom: "20px" }}
       >
         Cerrar sesión
       </button>
 
       <hr />
+
       <form onSubmit={handleSubmit} style={{ marginBottom: "20px" }}>
-  <input
-    placeholder="Número póliza"
-    value={form.numero_poliza}
-    onChange={(e) =>
-      setForm({ ...form, numero_poliza: e.target.value })
-    }
-    required
-  />
+        <input placeholder="Número póliza"
+          value={form.numero_poliza}
+          onChange={(e)=>setForm({...form,numero_poliza:e.target.value})}
+          required />
 
-  <input
-    placeholder="Bien"
-    value={form.bien}
-    onChange={(e) =>
-      setForm({ ...form, bien: e.target.value })
-    }
-    required
-  />
+        <input placeholder="Bien"
+          value={form.bien}
+          onChange={(e)=>setForm({...form,bien:e.target.value})}
+          required />
 
-  <input
-    placeholder="Prima"
-    type="number"
-    value={form.prima}
-    onChange={(e) =>
-      setForm({ ...form, prima: e.target.value })
-    }
-    required
-  />
+        <input type="number" placeholder="Prima"
+          value={form.prima}
+          onChange={(e)=>setForm({...form,prima:e.target.value})}
+          required />
 
-  <input
-    type="date"
-    value={form.fecha_inicio}
-    onChange={(e) =>
-      setForm({ ...form, fecha_inicio: e.target.value })
-    }
-    required
-  />
+        <input type="date"
+          value={form.fecha_inicio}
+          onChange={(e)=>setForm({...form,fecha_inicio:e.target.value})}
+          required />
 
-  <input
-    type="date"
-    value={form.fecha_vencimiento}
-    onChange={(e) =>
-      setForm({ ...form, fecha_vencimiento: e.target.value })
-    }
-    required
-  />
+        <input type="date"
+          value={form.fecha_vencimiento}
+          onChange={(e)=>setForm({...form,fecha_vencimiento:e.target.value})}
+          required />
 
-  <button type="submit">
-    {editingId ? "Actualizar" : "Crear"}
-  </button>
-</form>
+        <button type="submit">
+          {editingId ? "Actualizar" : "Crear"}
+        </button>
+      </form>
 
-      <div style={{ marginBottom: "20px" }}>
-        <input
-          placeholder="Buscar póliza..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          style={{
-            padding: "6px",
-            borderRadius: "4px",
-            border: "1px solid #ccc",
-            marginRight: "15px",
-          }}
-        />
-
-        <label>
-          <input
-            type="checkbox"
-            checked={filterUrgent}
-            onChange={() => setFilterUrgent(!filterUrgent)}
-          />{" "}
-          Mostrar solo ≤ 30 días
-        </label>
-      </div>
-
-      <table
-        style={{
-          borderCollapse: "collapse",
-          width: "100%",
-          background: "white",
-        }}
-      >
-        <thead style={{ background: "#f5f5f5" }}>
+      <table style={{ borderCollapse: "collapse", width: "100%" }}>
+        <thead>
           <tr>
-            <th onClick={() => handleSort("id")} style={{ cursor: "pointer" }}>ID{getArrow("id")}</th>
-            <th onClick={() => handleSort("numero_poliza")} style={{ cursor: "pointer" }}>Número{getArrow("numero_poliza")}</th>
-            <th onClick={() => handleSort("bien")} style={{ cursor: "pointer" }}>Bien{getArrow("bien")}</th>
-            <th onClick={() => handleSort("prima")} style={{ cursor: "pointer" }}>Prima{getArrow("prima")}</th>
-            <th onClick={() => handleSort("fecha_vencimiento")} style={{ cursor: "pointer" }}>Vencimiento{getArrow("fecha_vencimiento")}</th>
+            <th>ID</th>
+            <th>Número</th>
+            <th>Bien</th>
+            <th>Prima</th>
+            <th>Vencimiento</th>
+            <th>Último aviso</th>
             <th>Acciones</th>
           </tr>
         </thead>
@@ -291,41 +238,29 @@ export default function Dashboard({ onLogout }) {
             const color = getColor(dias);
 
             return (
-              <tr key={p.id} style={{ borderBottom: "1px solid #eee" }}>
+              <tr key={p.id}>
                 <td>{p.id}</td>
                 <td>{p.numero_poliza}</td>
                 <td>{p.bien}</td>
                 <td>{p.prima}</td>
-                <td style={{ minWidth: "220px" }}>
-                  {p.fecha_vencimiento}{" "}
-                  {dias >= 0 && (
-                    <span style={{ fontSize: "0.85em", color }}>
-                      ({dias} días)
-                    </span>
-                  )}
-
-                  <div
-                    style={{
-                      height: "6px",
-                      background: "#eee",
-                      borderRadius: "4px",
-                      marginTop: "6px",
-                    }}
-                  >
-                    <div
-                      style={{
-                        height: "6px",
-                        width: `${progreso}%`,
-                        background: color,
-                        borderRadius: "4px",
-                        transition: "width 0.3s ease",
-                      }}
-                    />
+                <td>
+                  {p.fecha_vencimiento} ({dias} días)
+                  <div style={{height:"6px",background:"#eee"}}>
+                    <div style={{
+                      height:"6px",
+                      width:`${progreso}%`,
+                      background:color
+                    }} />
                   </div>
                 </td>
                 <td>
-                  <button onClick={() => handleEdit(p)}>Editar</button>
-                  <button onClick={() => handleDelete(p.id)}>Eliminar</button>
+                  {p.fecha_aviso_enviado
+                    ? new Date(p.fecha_aviso_enviado).toLocaleString()
+                    : "-"}
+                </td>
+                <td>
+                  <button onClick={()=>handleEdit(p)}>Editar</button>
+                  <button onClick={()=>handleDelete(p.id)}>Eliminar</button>
                 </td>
               </tr>
             );
