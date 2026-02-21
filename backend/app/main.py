@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-ffrom datetime import timedelta, date, datetime
+from datetime import timedelta, date, datetime
 from .database import SessionLocal, engine
 from .models import Base, Poliza
 from .auth import (
