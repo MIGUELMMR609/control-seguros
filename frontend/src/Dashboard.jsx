@@ -192,6 +192,57 @@ export default function Dashboard({ onLogout }) {
       </button>
 
       <hr />
+      <form onSubmit={handleSubmit} style={{ marginBottom: "20px" }}>
+  <input
+    placeholder="Número póliza"
+    value={form.numero_poliza}
+    onChange={(e) =>
+      setForm({ ...form, numero_poliza: e.target.value })
+    }
+    required
+  />
+
+  <input
+    placeholder="Bien"
+    value={form.bien}
+    onChange={(e) =>
+      setForm({ ...form, bien: e.target.value })
+    }
+    required
+  />
+
+  <input
+    placeholder="Prima"
+    type="number"
+    value={form.prima}
+    onChange={(e) =>
+      setForm({ ...form, prima: e.target.value })
+    }
+    required
+  />
+
+  <input
+    type="date"
+    value={form.fecha_inicio}
+    onChange={(e) =>
+      setForm({ ...form, fecha_inicio: e.target.value })
+    }
+    required
+  />
+
+  <input
+    type="date"
+    value={form.fecha_vencimiento}
+    onChange={(e) =>
+      setForm({ ...form, fecha_vencimiento: e.target.value })
+    }
+    required
+  />
+
+  <button type="submit">
+    {editingId ? "Actualizar" : "Crear"}
+  </button>
+</form>
 
       <div style={{ marginBottom: "20px" }}>
         <input
