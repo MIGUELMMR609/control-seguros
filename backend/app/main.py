@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from datetime import timedelta
+ffrom datetime import timedelta, date, datetime
 from .database import SessionLocal, engine
 from .models import Base, Poliza
 from .auth import (
@@ -19,6 +19,10 @@ import os
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+
+@app.on_event("startup")
+def ejecutar_verificacion_automatica():
+    verificar_vencimientos_30_dias()
 
 # 🔐 CORS PROFESIONAL
 app.add_middleware(
@@ -68,6 +72,26 @@ def enviar_email(poliza):
         )
         server.send_message(msg)
 
+# -------- VERIFICAR VENCIMIENTOS 30 DÍAS --------
+
+def verificar_vencimientos_30_dias():
+    db = SessionLocal()
+    hoy = date.today()
+
+    polizas = db.query(Poliza).filter(
+        Poliza.aviso_enviado == False
+    ).all()
+
+    for poliza in polizas:
+        dias_restantes = (poliza.fecha_vencimiento - hoy).days
+
+        if dias_restantes == 30:
+            enviar_email(poliza)
+            poliza.aviso_enviado = True
+            poliza.fecha_aviso_enviado = datetime.utcnow()
+            db.commit()
+
+    db.close()
 
 # -------- CRUD --------
 
