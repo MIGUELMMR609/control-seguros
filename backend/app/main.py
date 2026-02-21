@@ -1,8 +1,7 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from sqlalchemy import text
 from datetime import timedelta, date, datetime
 from .database import SessionLocal, engine
 from .models import Base, Poliza
@@ -20,11 +19,8 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
-@app.on_event("startup")
-def ejecutar_verificacion_automatica():
-    verificar_vencimientos_30_dias()
+# ---------------- CORS ----------------
 
-# 🔐 CORS PROFESIONAL
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -36,7 +32,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# -------- LOGIN --------
+# ---------------- LOGIN ----------------
 
 @app.post("/login")
 def login(form_data: OAuth2PasswordRequestForm = Depends()):
@@ -53,7 +49,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-# -------- EMAIL --------
+# ---------------- EMAIL ----------------
 
 def enviar_email(poliza):
     msg = EmailMessage()
@@ -72,28 +68,47 @@ def enviar_email(poliza):
         )
         server.send_message(msg)
 
-# -------- VERIFICAR VENCIMIENTOS 30 DÍAS --------
+
+# ---------------- VERIFICACIÓN 30 DÍAS ----------------
 
 def verificar_vencimientos_30_dias():
     db = SessionLocal()
     hoy = date.today()
 
-    polizas = db.query(Poliza).filter(
-        Poliza.aviso_enviado == False
-    ).all()
+    polizas = db.query(Poliza).filter(Poliza.aviso_enviado == False).all()
 
     for poliza in polizas:
         dias_restantes = (poliza.fecha_vencimiento - hoy).days
 
         if dias_restantes == 30:
-            enviar_email(poliza)
-            poliza.aviso_enviado = True
-            poliza.fecha_aviso_enviado = datetime.utcnow()
-            db.commit()
+            try:
+                enviar_email(poliza)
+                poliza.aviso_enviado = True
+                poliza.fecha_aviso_enviado = datetime.utcnow()
+                db.commit()
+            except Exception as e:
+                print("Error enviando email:", e)
 
     db.close()
 
-# -------- CRUD --------
+
+# ---------------- ENDPOINT CRON SEGURO ----------------
+
+CRON_SECRET = "8fj39fk39fKJH34kjh23498sd9fKJH"
+
+@app.post("/revisar-vencimientos")
+def revisar_vencimientos(request: Request):
+    cron_key = request.headers.get("X-CRON-KEY")
+
+    if cron_key != CRON_SECRET:
+        return {"error": "No autorizado"}
+
+    verificar_vencimientos_30_dias()
+
+    return {"mensaje": "Revisión ejecutada correctamente"}
+
+
+# ---------------- CRUD POLIZAS ----------------
 
 @app.get("/polizas")
 def listar_polizas(user: str = Depends(get_current_user)):
@@ -157,81 +172,11 @@ def enviar_recordatorio_manual(poliza_id: int, user: str = Depends(get_current_u
         raise HTTPException(status_code=404, detail="Póliza no encontrada")
 
     enviar_email(poliza)
+
+    poliza.aviso_enviado = True
+    poliza.fecha_aviso_enviado = datetime.utcnow()
+    db.commit()
+
     db.close()
 
     return {"mensaje": "Recordatorio enviado correctamente"}
-
-
-# -------- DEBUG COLUMNAS (TEMPORAL) --------
-
-@app.get("/debug-columnas")
-def ver_columnas():
-    db = SessionLocal()
-    resultado = db.execute(text("""
-        SELECT column_name
-        FROM information_schema.columns
-        WHERE table_name = 'polizas'
-    """)).fetchall()
-    db.close()
-    return {"columnas": [r[0] for r in resultado]}
-@app.get("/debug-crear-columna")
-def crear_columna():
-    db = SessionLocal()
-    db.execute(text("""
-        ALTER TABLE polizas
-        ADD COLUMN IF NOT EXISTS fecha_aviso_enviado TIMESTAMP NULL;
-    """))
-    db.commit()
-    db.close()
-    return {"mensaje": "Columna creada si no existía"}
-@app.get("/debug-dias/{poliza_id}")
-def debug_dias(poliza_id: int):
-    db = SessionLocal()
-    poliza = db.query(Poliza).filter(Poliza.id == poliza_id).first()
-
-    if not poliza:
-        db.close()
-        return {"error": "No encontrada"}
-
-    hoy = date.today()
-    dias = (poliza.fecha_vencimiento - hoy).days
-
-    db.close()
-
-    return {
-        "hoy_backend": str(hoy),
-        "fecha_vencimiento": str(poliza.fecha_vencimiento),
-        "dias_restantes_backend": dias
-    }
-@app.get("/debug-poliza/{poliza_id}")
-def debug_poliza(poliza_id: int):
-    db = SessionLocal()
-    poliza = db.query(Poliza).filter(Poliza.id == poliza_id).first()
-
-    if not poliza:
-        db.close()
-        return {"error": "No encontrada"}
-
-    resultado = {
-        "id": poliza.id,
-        "aviso_enviado": poliza.aviso_enviado,
-        "fecha_aviso_enviado": str(poliza.fecha_aviso_enviado)
-    }
-
-    db.close()
-    return resultado
-@app.get("/debug-reset/{poliza_id}")
-def debug_reset(poliza_id: int):
-    db = SessionLocal()
-    poliza = db.query(Poliza).filter(Poliza.id == poliza_id).first()
-
-    if not poliza:
-        db.close()
-        return {"error": "No encontrada"}
-
-    poliza.aviso_enviado = False
-    poliza.fecha_aviso_enviado = None
-    db.commit()
-    db.close()
-
-    return {"mensaje": "Reseteada correctamente"}
