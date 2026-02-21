@@ -62,6 +62,11 @@ class Poliza(Base):
 
     estado = Column(String, default="activa")
 
+    # ---- V4 CONFIGURACIÓN DINÁMICA ----
+    aviso_30 = Column(Boolean, default=True)
+    aviso_15 = Column(Boolean, default=True)
+    aviso_7  = Column(Boolean, default=True)
+
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow)
 
@@ -71,7 +76,7 @@ class Poliza(Base):
 
 
 # =========================
-# AVISOS ENVIADOS (V3)
+# AVISOS ENVIADOS
 # =========================
 
 class AvisoEnviado(Base):
@@ -79,7 +84,7 @@ class AvisoEnviado(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     poliza_id = Column(Integer, ForeignKey("polizas.id"))
-    tipo_aviso = Column(Integer, nullable=False)  # 30 / 15 / 7
+    tipo_aviso = Column(Integer, nullable=False)
     fecha_envio = Column(DateTime, default=datetime.utcnow)
 
     poliza = relationship("Poliza", back_populates="avisos")
@@ -115,4 +120,4 @@ class Siniestro(Base):
     descripcion = Column(String, nullable=True)
     acciones = Column(String, nullable=True)
     finalizado = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.utcnow)∫
