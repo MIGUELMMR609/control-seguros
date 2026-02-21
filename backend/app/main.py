@@ -4,7 +4,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import timedelta, date, datetime
 from .database import SessionLocal, engine
-from .models import Base, Poliza
+from .models import Base, Poliza, AvisoEnviado
 from .auth import (
     authenticate_user,
     create_access_token,
@@ -51,14 +51,14 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
 
 # ---------------- EMAIL ----------------
 
-def enviar_email(poliza):
+def enviar_email(poliza, dias):
     msg = EmailMessage()
-    msg["Subject"] = f"Recordatorio póliza {poliza.numero_poliza}"
+    msg["Subject"] = f"Aviso {dias} días - póliza {poliza.numero_poliza}"
     msg["From"] = os.getenv("EMAIL_USER")
     msg["To"] = os.getenv("EMAIL_USER")
 
     msg.set_content(
-        f"La póliza {poliza.numero_poliza} del bien '{poliza.bien}' vence el {poliza.fecha_vencimiento}"
+        f"La póliza {poliza.numero_poliza} del bien '{poliza.bien}' vence en {dias} días ({poliza.fecha_vencimiento})."
     )
 
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
@@ -69,30 +69,44 @@ def enviar_email(poliza):
         server.send_message(msg)
 
 
-# ---------------- VERIFICACIÓN 30 DÍAS ----------------
+# ---------------- VERIFICACIÓN MULTIAVISO V3 ----------------
 
-def verificar_vencimientos_30_dias():
+def verificar_vencimientos():
     db = SessionLocal()
     hoy = date.today()
 
-    polizas = db.query(Poliza).filter(Poliza.aviso_enviado == False).all()
+    polizas = db.query(Poliza).all()
 
     for poliza in polizas:
         dias_restantes = (poliza.fecha_vencimiento - hoy).days
 
-        if dias_restantes == 30:
-            try:
-                enviar_email(poliza)
-                poliza.aviso_enviado = True
-                poliza.fecha_aviso_enviado = datetime.utcnow()
-                db.commit()
-            except Exception as e:
-                print("Error enviando email:", e)
+        if dias_restantes in [30, 15, 7]:
+
+            ya_enviado = db.query(AvisoEnviado).filter(
+                AvisoEnviado.poliza_id == poliza.id,
+                AvisoEnviado.tipo_aviso == dias_restantes
+            ).first()
+
+            if not ya_enviado:
+                try:
+                    enviar_email(poliza, dias_restantes)
+
+                    nuevo_aviso = AvisoEnviado(
+                        poliza_id=poliza.id,
+                        tipo_aviso=dias_restantes,
+                        fecha_envio=datetime.utcnow()
+                    )
+
+                    db.add(nuevo_aviso)
+                    db.commit()
+
+                except Exception as e:
+                    print("Error enviando email:", e)
 
     db.close()
 
 
-# ---------------- ENDPOINT CRON SEGURO ----------------
+# ---------------- CRON SEGURO ----------------
 
 CRON_SECRET = "8fj39fk39fKJH34kjh23498sd9fKJH"
 
@@ -103,7 +117,7 @@ def revisar_vencimientos(request: Request):
     if cron_key != CRON_SECRET:
         return {"error": "No autorizado"}
 
-    verificar_vencimientos_30_dias()
+    verificar_vencimientos()
 
     return {"mensaje": "Revisión ejecutada correctamente"}
 
@@ -171,11 +185,7 @@ def enviar_recordatorio_manual(poliza_id: int, user: str = Depends(get_current_u
         db.close()
         raise HTTPException(status_code=404, detail="Póliza no encontrada")
 
-    enviar_email(poliza)
-
-    poliza.aviso_enviado = True
-    poliza.fecha_aviso_enviado = datetime.utcnow()
-    db.commit()
+    enviar_email(poliza, 0)
 
     db.close()
 
