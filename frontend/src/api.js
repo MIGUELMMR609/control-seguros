@@ -17,13 +17,14 @@ export const login = async (username, password) => {
   const formData = new URLSearchParams();
   formData.append("username", username);
   formData.append("password", password);
+  formData.append("grant_type", "password");
 
   const response = await fetch(`${API_URL}/login`, {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
     },
-    body: formData,
+    body: formData.toString(),
   });
 
   if (!response.ok) {
