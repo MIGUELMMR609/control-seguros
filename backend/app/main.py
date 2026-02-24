@@ -102,3 +102,33 @@ def eliminar_poliza(poliza_id: int, user: str = Depends(get_current_user)):
     db.commit()
     db.close()
     return {"mensaje": "Eliminada correctamente"}
+from datetime import date
+
+@app.post("/revisar-vencimientos")
+def revisar_vencimientos():
+    db = SessionLocal()
+    hoy = date.today()
+    polizas = db.query(Poliza).all()
+
+    for poliza in polizas:
+        dias_restantes = (poliza.fecha_vencimiento - hoy).days
+
+        # 30 días
+        if dias_restantes == 30 and not poliza.aviso_30:
+            print(f"Enviando aviso 30 días para {poliza.numero_poliza}")
+            poliza.aviso_30 = True
+
+        # 15 días
+        if dias_restantes == 15 and not poliza.aviso_15:
+            print(f"Enviando aviso 15 días para {poliza.numero_poliza}")
+            poliza.aviso_15 = True
+
+        # 7 días
+        if dias_restantes == 7 and not poliza.aviso_7:
+            print(f"Enviando aviso 7 días para {poliza.numero_poliza}")
+            poliza.aviso_7 = True
+
+    db.commit()
+    db.close()
+
+    return {"mensaje": "Revisión ejecutada correctamente"}
