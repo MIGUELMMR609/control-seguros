@@ -2,24 +2,22 @@ from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from datetime import timedelta
+from datetime import timedelta, date
 from .database import SessionLocal, engine
-from .models import Base, Poliza
+from .models import Base, Poliza, AvisoEnviado
 from .auth import (
     authenticate_user,
     create_access_token,
     get_current_user,
     ACCESS_TOKEN_EXPIRE_MINUTES,
 )
-import smtplib
-from email.message import EmailMessage
 import os
 
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
-# 🔥 CORS DEFINITIVO PRODUCCIÓN
+# CORS PRODUCCIÓN
 origins = [
     "http://localhost:5173",
     "https://control-seguros-web.onrender.com",
@@ -33,7 +31,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# -------- LOGIN --------
+# ---------------- LOGIN ----------------
 
 @app.post("/login")
 def login(form_data: OAuth2PasswordRequestForm = Depends()):
@@ -50,7 +48,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-# -------- CRUD --------
+# ---------------- CRUD ----------------
 
 @app.get("/polizas")
 def listar_polizas(user: str = Depends(get_current_user)):
@@ -102,7 +100,9 @@ def eliminar_poliza(poliza_id: int, user: str = Depends(get_current_user)):
     db.commit()
     db.close()
     return {"mensaje": "Eliminada correctamente"}
-from datetime import date
+
+
+# ---------------- REVISIÓN AUTOMÁTICA ----------------
 
 @app.post("/revisar-vencimientos")
 def revisar_vencimientos():
@@ -113,20 +113,35 @@ def revisar_vencimientos():
     for poliza in polizas:
         dias_restantes = (poliza.fecha_vencimiento - hoy).days
 
-        # 30 días
+        # 30 DÍAS
         if dias_restantes == 30 and not poliza.aviso_30:
-            print(f"Enviando aviso 30 días para {poliza.numero_poliza}")
             poliza.aviso_30 = True
 
-        # 15 días
+            nuevo_aviso = AvisoEnviado(
+                poliza_id=poliza.id,
+                tipo_aviso=30
+            )
+            db.add(nuevo_aviso)
+
+        # 15 DÍAS
         if dias_restantes == 15 and not poliza.aviso_15:
-            print(f"Enviando aviso 15 días para {poliza.numero_poliza}")
             poliza.aviso_15 = True
 
-        # 7 días
+            nuevo_aviso = AvisoEnviado(
+                poliza_id=poliza.id,
+                tipo_aviso=15
+            )
+            db.add(nuevo_aviso)
+
+        # 7 DÍAS
         if dias_restantes == 7 and not poliza.aviso_7:
-            print(f"Enviando aviso 7 días para {poliza.numero_poliza}")
             poliza.aviso_7 = True
+
+            nuevo_aviso = AvisoEnviado(
+                poliza_id=poliza.id,
+                tipo_aviso=7
+            )
+            db.add(nuevo_aviso)
 
     db.commit()
     db.close()
