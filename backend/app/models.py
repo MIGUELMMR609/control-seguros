@@ -93,3 +93,14 @@ class Siniestro(Base):
     acciones = Column(String, nullable=True)
     finalizado = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
+   # =========================
+# AVISOS ENVIADOS
+# =========================
+
+class AvisoEnviado(Base):
+    __tablename__ = "avisos_enviados"
+
+    id = Column(Integer, primary_key=True, index=True)
+    poliza_id = Column(Integer, ForeignKey("polizas.id"))
+    tipo_aviso = Column(Integer, nullable=False)  # 30, 15 o 7
+    fecha_envio = Column(DateTime, default=datetime.utcnow) 
